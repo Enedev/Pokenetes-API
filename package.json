@@ -19,8 +19,8 @@
   },
   "homepage": "https://github.com/Enedev/Pokenetes#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
     "dotenv": "^17.4.2",
-    "fastify": "^5.12.0",
-    "pg": "^8.23.0"
+    "fastify": "^5.12.0"
   }
 }
