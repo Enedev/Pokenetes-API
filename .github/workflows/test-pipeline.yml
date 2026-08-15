@@ -1,0 +1,45 @@
+name: Test Environment Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run coverage gate
+        run: npm run test:coverage
+
+      - name: Verify coverage threshold
+        run: |
+          COVERAGE=$(node -e "const fs=require('fs'); const r=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')); console.log(r.total.lines.pct)")
+          echo "Coverage: ${COVERAGE}%"
+          node -e "const fs=require('fs'); const pct=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total.lines.pct; if(pct<60){console.error('Coverage gate failed: '+pct+'% < 60%'); process.exit(1)}"
+
+      - name: Deploy to Render (Test)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        run: curl -X POST "${{ secrets.RENDER_TEST_DEPLOY_HOOK }}"
