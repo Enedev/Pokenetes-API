@@ -30,13 +30,11 @@ jobs:
         run: npm test
 
       - name: Run coverage gate
-        run: npm run test:coverage
+        run: npm run test:coverage:prod
 
       - name: Verify coverage threshold
         run: |
-          COVERAGE=$(node -e "const fs=require('fs'); const r=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')); console.log(r.total.lines.pct)")
-          echo "Coverage: ${COVERAGE}%"
-          node -e "const fs=require('fs'); const pct=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total.lines.pct; if(pct<85){console.error('Coverage gate failed: '+pct+'% < 85%'); process.exit(1)}"
+          node -e "const fs=require('fs'); const gate=require('./coverage-gates.json').prod; const pct=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total.lines.pct; console.log('Coverage: '+pct+'% (gate: '+gate+'%)'); if(pct<gate){console.error('Coverage gate failed: '+pct+'% < '+gate+'%'); process.exit(1)}"
 
       - name: Deploy to Render (Production)
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -44,7 +42,7 @@ jobs:
           RENDER_HOOK: ${{ secrets.RENDER_PROD_DEPLOY_HOOK }}
         run: |
           if [ -z "$RENDER_HOOK" ]; then
-            echo "RENDER_PROD_DEPLOY_HOOK is not set; skipping deploy"
-            exit 0
+            echo "Missing GitHub secret RENDER_PROD_DEPLOY_HOOK"
+            exit 1
           fi
-          curl -X POST "$RENDER_HOOK"
+          curl -fsS -X POST "$RENDER_HOOK"
