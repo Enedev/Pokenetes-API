@@ -9,6 +9,19 @@ import { queryRoutes } from './routes/query';
 export async function buildApp(env: AppEnv, supabase?: ReturnType<typeof import('./db/client').getSupabaseClient>) {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
 
+  app.get('/', async () => ({
+    name: 'Pokenetes API',
+    status: 'ok',
+    environment: env.NODE_ENV,
+    endpoints: {
+      health: 'GET /health',
+      pokemon: 'POST /pokemon',
+      entrenador: 'POST /entrenador',
+      batalla: 'POST /batalla',
+      query: 'QUERY /query',
+    },
+  }));
+
   app.get('/health', async () => ({
     status: 'ok',
     environment: env.NODE_ENV,
