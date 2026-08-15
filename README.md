@@ -16,6 +16,8 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 
 Flujo: trabajas en `dev` → el pipeline de test valida el código → cuando está estable, mergeas `dev` en `main` → el pipeline de prod valida de nuevo.
 
+Los umbrales de cobertura se cambian en un solo archivo: [`coverage-gates.json`](./coverage-gates.json) (`test` = 60, `prod` = 85).
+
 ---
 
 ## Requisitos locales
