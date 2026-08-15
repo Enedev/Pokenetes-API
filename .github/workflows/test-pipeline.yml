@@ -42,5 +42,12 @@ jobs:
           node -e "const fs=require('fs'); const pct=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total.lines.pct; if(pct<60){console.error('Coverage gate failed: '+pct+'% < 60%'); process.exit(1)}"
 
       - name: Deploy to Render (Test)
-        if: secrets.RENDER_TEST_DEPLOY_HOOK != '' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/dev'
-        run: curl -X POST "${{ secrets.RENDER_TEST_DEPLOY_HOOK }}"
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/dev'
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_TEST_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_HOOK" ]; then
+            echo "RENDER_TEST_DEPLOY_HOOK is not set; skipping deploy"
+            exit 0
+          fi
+          curl -X POST "$RENDER_HOOK"
