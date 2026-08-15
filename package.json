@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Enedev/Pokenetes#readme",
   "dependencies": {
+    "dotenv": "^17.4.2",
     "fastify": "^5.12.0"
   }
 }
