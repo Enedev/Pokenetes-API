@@ -39,5 +39,5 @@ jobs:
           node -e "const fs=require('fs'); const pct=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total.lines.pct; if(pct<85){console.error('Coverage gate failed: '+pct+'% < 85%'); process.exit(1)}"
 
       - name: Deploy to Render (Production)
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        if: secrets.RENDER_PROD_DEPLOY_HOOK != '' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: curl -X POST "${{ secrets.RENDER_PROD_DEPLOY_HOOK }}"
