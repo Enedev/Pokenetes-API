@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/Enedev/Pokenetes/issues"
   },
-  "homepage": "https://github.com/Enedev/Pokenetes#readme"
+  "homepage": "https://github.com/Enedev/Pokenetes#readme",
+  "dependencies": {
+    "fastify": "^5.12.0"
+  }
 }
