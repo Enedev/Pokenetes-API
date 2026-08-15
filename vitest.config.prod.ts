@@ -1,4 +1,10 @@
+import { readFileSync } from 'fs';
 import { defineConfig } from 'vitest/config';
+
+const gates = JSON.parse(readFileSync('./coverage-gates.json', 'utf8')) as {
+  test: number;
+  prod: number;
+};
 
 export default defineConfig({
   test: {
@@ -12,7 +18,7 @@ export default defineConfig({
       exclude: ['src/index.ts'],
       all: true,
       thresholds: {
-        lines: 60,
+        lines: gates.prod,
         functions: 0,
         branches: 0,
         statements: 0,
