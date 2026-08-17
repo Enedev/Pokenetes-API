@@ -16,6 +16,7 @@ export default defineConfig({
       'tests/migrate.test.ts',
       'tests/env.test.ts',
       'tests/server.test.ts',
+      'tests/batalla.test.ts',
     ],
     coverage: {
       provider: 'v8',
