@@ -9,7 +9,9 @@
     "dev": "tsx watch src/index.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --config vitest.config.pruebas.ts",
-    "test:coverage:prod": "vitest run --coverage --config vitest.config.prod.ts"
+    "test:coverage:prod": "vitest run --coverage --config vitest.config.prod.ts",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
   },
   "repository": {
     "type": "git",
