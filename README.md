@@ -66,56 +66,61 @@ docker compose up --build
 
 ## Endpoints
 
+Cada entidad expone todos estos verbos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `QUERY`.
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | `GET` | `/` | Índice de la API |
 | `GET` | `/health` | Health check |
-| `POST` | `/pokemon` | Crear Pokémon |
-| `POST` | `/entrenador` | Crear entrenador |
-| `POST` | `/batalla` | Crear batalla |
-| `QUERY` | `/query` | Consultar registros (RFC 9324) |
+| `GET` | `/pokemon` `/entrenador` `/batalla` | Listar |
+| `GET` | `/pokemon/:id` (igual para las otras) | Obtener uno |
+| `POST` | `/pokemon` `/entrenador` `/batalla` | Crear |
+| `PUT` | `/pokemon/:id` | Reemplazo completo |
+| `PATCH` | `/pokemon/:id` | Actualización parcial |
+| `DELETE` | `/pokemon/:id` | Eliminar |
+| `HEAD` | `/pokemon` y `/pokemon/:id` | Igual que GET, sin body |
+| `QUERY` | `/pokemon` `/entrenador` `/batalla` | Consulta RFC 9324 |
+| `QUERY` | `/query` | Consulta genérica (`entity` + `limit`) |
+
+`HEAD` lo genera Fastify a partir de cada `GET`. `QUERY` en Render/Cloudflare puede devolver `405`; en local funciona.
 
 ### Ejemplos
 
-Health:
-
 ```bash
-curl https://pokenetes-api-test.onrender.com/health
-```
+curl http://localhost:3000/health
 
-Crear Pokémon:
-
-```bash
-curl -X POST https://pokenetes-api-test.onrender.com/pokemon \
+curl -X POST http://localhost:3000/pokemon \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Pikachu","tipo":"Electrico","nivel":5}'
-```
 
-Crear entrenador:
+curl http://localhost:3000/pokemon
+curl http://localhost:3000/pokemon/UUID
 
-```bash
-curl -X POST https://pokenetes-api-test.onrender.com/entrenador \
+curl -X PUT http://localhost:3000/pokemon/UUID \
   -H "Content-Type: application/json" \
-  -d '{"nombre":"Ash","region":"Kanto"}'
-```
+  -d '{"nombre":"Pikachu","tipo":"Electrico","nivel":10}'
 
-Crear batalla (usa los `id` que devolvieron los POST anteriores):
-
-```bash
-curl -X POST https://pokenetes-api-test.onrender.com/batalla \
+curl -X PATCH http://localhost:3000/pokemon/UUID \
   -H "Content-Type: application/json" \
-  -d '{"pokemon_id":"UUID-POKEMON","entrenador_id":"UUID-ENTRENADOR","resultado":"victoria"}'
-```
+  -d '{"nivel":8}'
 
-QUERY (en local; algunos proxies en la nube bloquean el método `QUERY` con `405`):
+curl -X DELETE http://localhost:3000/pokemon/UUID
+curl -I http://localhost:3000/pokemon
 
-```bash
-curl -X QUERY http://localhost:3000/query \
+curl -X QUERY http://localhost:3000/pokemon \
   -H "Content-Type: application/json" \
-  -d '{"entity":"pokemon","limit":5}'
+  -d '{"limit":5}'
 ```
 
-`entity` puede ser `pokemon`, `entrenador` o `batalla`.
+Cuerpos de las otras entidades:
+
+```json
+{ "nombre": "Ash", "region": "Kanto" }
+```
+
+```json
+{ "pokemon_id": "UUID-POKEMON", "entrenador_id": "UUID-ENTRENADOR", "resultado": "victoria" }
+```
 
 ---
 
