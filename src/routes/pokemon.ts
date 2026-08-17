@@ -1,40 +1,52 @@
 import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
-import { getSupabaseClient } from '../db/client';
-import { PokemonRecord } from '../db/schemas/pokemon';
-
-interface PokemonBody {
-  nombre: string;
-  tipo: string;
-  nivel?: number;
-}
+import { registerRestResource } from './rest';
 
 export async function pokemonRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
 ): Promise<void> {
-  app.post<{ Body: PokemonBody }>('/pokemon', async (request, reply) => {
-    const { nombre, tipo, nivel = 1 } = request.body;
+  await registerRestResource(app, env, supabaseClient, {
+    path: '/pokemon',
+    table: 'pokemon',
+    parsePost: (body) => {
+      const nombre = body.nombre;
+      const tipo = body.tipo;
 
-    if (!nombre || !tipo) {
-      return reply.status(400).send({ error: 'nombre and tipo are required' });
-    }
+      if (typeof nombre !== 'string' || typeof tipo !== 'string') {
+        return { ok: false, error: 'nombre and tipo are required' };
+      }
 
-    const supabase = supabaseClient ?? getSupabaseClient(env);
-    const payload: PokemonRecord = { nombre, tipo, nivel };
+      return {
+        ok: true,
+        value: { nombre, tipo, nivel: typeof body.nivel === 'number' ? body.nivel : 1 },
+      };
+    },
+    parsePut: (body) => {
+      const nombre = body.nombre;
+      const tipo = body.tipo;
+      const nivel = body.nivel;
 
-    const { data, error } = await supabase
-      .from('pokemon')
-      .insert(payload)
-      .select()
-      .single();
+      if (typeof nombre !== 'string' || typeof tipo !== 'string' || typeof nivel !== 'number') {
+        return { ok: false, error: 'nombre, tipo and nivel are required' };
+      }
 
-    if (error) {
-      return reply.status(500).send({ error: error.message });
-    }
+      return { ok: true, value: { nombre, tipo, nivel } };
+    },
+    parsePatch: (body) => {
+      const value: Record<string, unknown> = {};
 
-    return reply.status(201).send(data);
+      if (typeof body.nombre === 'string') value.nombre = body.nombre;
+      if (typeof body.tipo === 'string') value.tipo = body.tipo;
+      if (typeof body.nivel === 'number') value.nivel = body.nivel;
+
+      if (Object.keys(value).length === 0) {
+        return { ok: false, error: 'at least one of nombre, tipo, nivel is required' };
+      }
+
+      return { ok: true, value };
+    },
   });
 }

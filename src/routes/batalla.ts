@@ -1,40 +1,56 @@
 import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
-import { getSupabaseClient } from '../db/client';
-import { BatallaRecord } from '../db/schemas/batalla';
-
-interface BatallaBody {
-  pokemon_id: string;
-  entrenador_id: string;
-  resultado?: string;
-}
+import { registerRestResource } from './rest';
 
 export async function batallaRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
 ): Promise<void> {
-  app.post<{ Body: BatallaBody }>('/batalla', async (request, reply) => {
-    const { pokemon_id, entrenador_id, resultado } = request.body;
+  await registerRestResource(app, env, supabaseClient, {
+    path: '/batalla',
+    table: 'batalla',
+    parsePost: (body) => {
+      if (typeof body.pokemon_id !== 'string' || typeof body.entrenador_id !== 'string') {
+        return { ok: false, error: 'pokemon_id and entrenador_id are required' };
+      }
 
-    if (!pokemon_id || !entrenador_id) {
-      return reply.status(400).send({ error: 'pokemon_id and entrenador_id are required' });
-    }
+      return {
+        ok: true,
+        value: {
+          pokemon_id: body.pokemon_id,
+          entrenador_id: body.entrenador_id,
+          resultado: typeof body.resultado === 'string' ? body.resultado : undefined,
+        },
+      };
+    },
+    parsePut: (body) => {
+      if (typeof body.pokemon_id !== 'string' || typeof body.entrenador_id !== 'string') {
+        return { ok: false, error: 'pokemon_id and entrenador_id are required' };
+      }
 
-    const supabase = supabaseClient ?? getSupabaseClient(env);
-    const payload: BatallaRecord = { pokemon_id, entrenador_id, resultado };
+      return {
+        ok: true,
+        value: {
+          pokemon_id: body.pokemon_id,
+          entrenador_id: body.entrenador_id,
+          resultado: typeof body.resultado === 'string' ? body.resultado : null,
+        },
+      };
+    },
+    parsePatch: (body) => {
+      const value: Record<string, unknown> = {};
 
-    const { data, error } = await supabase
-      .from('batalla')
-      .insert(payload)
-      .select()
-      .single();
+      if (typeof body.pokemon_id === 'string') value.pokemon_id = body.pokemon_id;
+      if (typeof body.entrenador_id === 'string') value.entrenador_id = body.entrenador_id;
+      if (typeof body.resultado === 'string') value.resultado = body.resultado;
 
-    if (error) {
-      return reply.status(500).send({ error: error.message });
-    }
+      if (Object.keys(value).length === 0) {
+        return { ok: false, error: 'at least one of pokemon_id, entrenador_id, resultado is required' };
+      }
 
-    return reply.status(201).send(data);
+      return { ok: true, value };
+    },
   });
 }

@@ -15,9 +15,9 @@ export async function buildApp(env: AppEnv, supabase?: ReturnType<typeof import(
     environment: env.NODE_ENV,
     endpoints: {
       health: 'GET /health',
-      pokemon: 'POST /pokemon',
-      entrenador: 'POST /entrenador',
-      batalla: 'POST /batalla',
+      pokemon: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /pokemon',
+      entrenador: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /entrenador',
+      batalla: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /batalla',
       query: 'QUERY /query',
     },
   }));
