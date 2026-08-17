@@ -1,0 +1,24 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS pokemon (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre VARCHAR(100) NOT NULL,
+  tipo VARCHAR(50) NOT NULL,
+  nivel INTEGER NOT NULL DEFAULT 1 CHECK (nivel >= 1),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS entrenador (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre VARCHAR(100) NOT NULL,
+  region VARCHAR(100),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS batalla (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pokemon_id UUID NOT NULL REFERENCES pokemon(id) ON DELETE CASCADE,
+  entrenador_id UUID NOT NULL REFERENCES entrenador(id) ON DELETE CASCADE,
+  resultado VARCHAR(50),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
