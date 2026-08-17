@@ -56,11 +56,20 @@ npm test             # tests
 npm run test:coverage
 ```
 
-Con Docker (usa `.env.test`):
+Con Docker (API + Postgres local):
 
 ```bash
 docker compose up --build
+# o: npm run docker:up
 ```
+
+Levanta dos contenedores: `pokenetes-db` (Postgres 16, tablas en `docker/init.sql`) y `pokenetes-api` (Fastify). La API recibe `DATABASE_URL` apuntando a `db`. Necesitas `.env.test` en la raíz (Supabase) para los POST/GET.
+
+```bash
+docker compose down
+```
+
+El pipeline de CI también construye la imagen (`docker build`) después del quality gate.
 
 ---
 
