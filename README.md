@@ -24,6 +24,7 @@ Los umbrales de cobertura se cambian en un solo archivo: [`coverage-gates.json`]
 
 - Node.js 22+
 - npm
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (solo para correr con contenedores)
 - Archivos `.env.test` y/o `.env.prod` (copia desde los `.example`)
 
 ```bash
@@ -49,27 +50,88 @@ DATABASE_URL=...   # opcional; si existe, crea las tablas al arrancar
 
 ```bash
 npm install
-npm run dev          # desarrollo con recarga
-npm run build        # compila TypeScript a dist/
-npm start            # arranca dist/index.js
-npm test             # tests
-npm run test:coverage
+npm run dev                 # desarrollo con recarga
+npm run build               # compila TypeScript a dist/
+npm start                   # arranca dist/index.js
+npm test                    # corre la suite de tests
+npm run test:coverage       # coverage con umbral de test (≥ 60%)
+npm run test:coverage:prod  # coverage con umbral de producción (≥ 85%)
 ```
 
-Con Docker (API + Postgres local):
+---
+
+## Coverage
+
+Los dos entornos usan **la misma suite de tests**. Lo que cambia es el **mínimo exigido**:
+
+| Entorno | Comando | Umbral | Archivo de config |
+|---|---|---|---|
+| Test (`dev`) | `npm run test:coverage` | ≥ 60% | `vitest.config.pruebas.ts` |
+| Producción (`main`) | `npm run test:coverage:prod` | ≥ 85% | `vitest.config.prod.ts` |
+
+Los umbrales se editan en [`coverage-gates.json`](./coverage-gates.json). Si la cobertura queda por debajo del umbral, el comando falla (en local y en CI).
+
+Generar el reporte e abrirlo:
+
+```bash
+npm run test:coverage
+# o: npm run test:coverage:prod
+
+# Windows
+start coverage/index.html
+
+# macOS
+open coverage/index.html
+
+# Linux
+xdg-open coverage/index.html
+```
+
+El porcentaje también aparece en la terminal (`All files`). El HTML se escribe en `coverage/index.html` (esa carpeta está en `.gitignore`).
+
+---
+
+## Docker
+
+La API y una base Postgres local se levantan juntas con Compose.
+
+| Archivo | Rol |
+|---|---|
+| `Dockerfile` | Imagen de la API (compila TypeScript y ejecuta `node dist/index.js`) |
+| `docker-compose.yml` | Servicio `api` + servicio `db` (Postgres 16) |
+| `docker/init.sql` | Crea las tablas `pokemon`, `entrenador` y `batalla` al iniciar Postgres |
+
+Necesitas Docker Desktop en ejecución y un archivo `.env.test` en la raíz (Supabase).
 
 ```bash
 docker compose up --build
-# o: npm run docker:up
+# equivalente: npm run docker:up
 ```
 
-Levanta dos contenedores: `pokenetes-db` (Postgres 16, tablas en `docker/init.sql`) y `pokenetes-api` (Fastify). La API recibe `DATABASE_URL` apuntando a `db`. Necesitas `.env.test` en la raíz (Supabase) para los POST/GET.
+| Contenedor | Servicio | Puerto |
+|---|---|---|
+| `pokenetes-api` | Fastify | `3000` |
+| `pokenetes-db` | Postgres 16 | `5432` |
+
+Compose inyecta `DATABASE_URL` hacia el servicio `db`. Las operaciones REST usan las credenciales de Supabase de `.env.test`.
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/
+docker compose ps
+docker logs pokenetes-api
+```
+
+Detener:
 
 ```bash
 docker compose down
+# equivalente: npm run docker:down
 ```
 
-El pipeline de CI también construye la imagen (`docker build`) después del quality gate.
+`docker compose down -v` elimina también el volumen `pgdata` de Postgres.
+
+En CI, después de tests y coverage, el pipeline construye la misma imagen con `docker build`.
 
 ---
 
@@ -164,7 +226,7 @@ No tienes que pulsar nada: GitHub detecta el push y lanza el workflow.
 
 ### Cómo ver si pasó o falló
 
-1. Entra al repo: https://github.com/Enedev/Pokenetes
+1. Entra al repo: https://github.com/Enedev/Pokenetes-API
 2. Pestaña **Actions**.
 3. A la izquierda ves los dos workflows.
 4. Al centro, el historial (verde = OK, rojo = falló, amarillo = en curso).
@@ -212,7 +274,11 @@ src/
   db/client.ts          Cliente Supabase
   db/migrate.ts         Migraciones / verificación de tablas
   db/schemas/           DDL de pokemon, entrenador, batalla
-  routes/               POST y QUERY
+  routes/               REST de las 3 entidades
 tests/                  Vitest
+docker/init.sql         Tablas para Postgres local
+Dockerfile              Imagen de la API
+docker-compose.yml      API + Postgres
+coverage-gates.json     Umbrales 60 (test) / 85 (prod)
 .github/workflows/      CI/CD
 ```
