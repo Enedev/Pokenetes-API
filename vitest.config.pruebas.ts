@@ -10,14 +10,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      'tests/migrate.test.ts',
-      'tests/env.test.ts',
-      'tests/server.test.ts',
-      'tests/batalla.test.ts',
-    ],
+    include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],
