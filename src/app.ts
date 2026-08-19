@@ -42,5 +42,4 @@ export async function startServer(env: AppEnv) {
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });
 
-  return app;
-}
+  return app
