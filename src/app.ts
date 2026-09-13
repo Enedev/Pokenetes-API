@@ -1,32 +1,60 @@
 import Fastify from 'fastify';
 import { AppEnv } from './config/env';
+import { API_VERSION, API_V2_PREFIX } from './config/version';
 import { runMigrations } from './db/migrate';
+import { resolveTraceId } from './http/trace';
 import { pokemonRoutes } from './routes/pokemon';
 import { entrenadorRoutes } from './routes/entrenador';
 import { batallaRoutes } from './routes/batalla';
 import { queryRoutes } from './routes/query';
+import { lastRoutes } from './routes/last';
+import { FetchLike } from './integrations/peer-client';
 
-export async function buildApp(env: AppEnv, supabase?: ReturnType<typeof import('./db/client').getSupabaseClient>) {
+export async function buildApp(
+  env: AppEnv,
+  supabase?: ReturnType<typeof import('./db/client').getSupabaseClient>,
+  fetchImpl?: FetchLike,
+) {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
+
+  app.addHook('onRequest', async (request) => {
+    request.headers['x-trace-id'] = resolveTraceId(request.headers['x-trace-id']);
+  });
 
   app.get('/', async () => ({
     name: 'Pokenetes API',
     status: 'ok',
+    version: API_VERSION,
     environment: env.NODE_ENV,
     endpoints: {
       health: 'GET /health',
-      pokemon: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /pokemon',
-      entrenador: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /entrenador',
-      batalla: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /batalla',
-      query: 'QUERY /query',
+      v1: {
+        pokemon: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /pokemon',
+        entrenador: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /entrenador',
+        batalla: 'GET|POST|PUT|PATCH|DELETE|HEAD|QUERY /batalla',
+        query: 'QUERY /query',
+      },
+      v2: {
+        pokemon: `GET|POST|PUT|PATCH|DELETE|HEAD|QUERY ${API_V2_PREFIX}/pokemon`,
+        entrenador: `GET|POST|PUT|PATCH|DELETE|HEAD|QUERY ${API_V2_PREFIX}/entrenador`,
+        batalla: `GET|POST|PUT|PATCH|DELETE|HEAD|QUERY ${API_V2_PREFIX}/batalla`,
+        last: `GET ${API_V2_PREFIX}/{pokemon|entrenador|batalla}/last`,
+        query: `QUERY ${API_V2_PREFIX}/query`,
+      },
     },
   }));
 
   app.get('/health', async () => ({
     status: 'ok',
+    version: API_VERSION,
     environment: env.NODE_ENV,
   }));
 
+  await lastRoutes(app, env, supabase, fetchImpl);
+  await pokemonRoutes(app, env, supabase, `${API_V2_PREFIX}/pokemon`);
+  await entrenadorRoutes(app, env, supabase, `${API_V2_PREFIX}/entrenador`);
+  await batallaRoutes(app, env, supabase, `${API_V2_PREFIX}/batalla`);
+  await queryRoutes(app, env, supabase, `${API_V2_PREFIX}/query`);
   await pokemonRoutes(app, env, supabase);
   await entrenadorRoutes(app, env, supabase);
   await batallaRoutes(app, env, supabase);
