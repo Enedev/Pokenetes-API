@@ -189,8 +189,16 @@ Respuesta (los peers cambian porque se leen en tiempo real):
 
 APIs compañeras:
 
-- [biblio-express](https://github.com/PholCast/biblio-express) — users, books, loans. Se consume `books`.
-- [Hospitaline](https://github.com/Dhani-dev/Hospitaline) — hospitals, doctors, pacientes. Se consume `hospitals` (`https://hospitaline-dev.onrender.com`).
+- [biblio-express](https://github.com/PholCast/biblio-express) — users, books, loans. Se consume `books` cuando exista la URL en **Oracle**.
+- [Hospitaline](https://github.com/Dhani-dev/Hospitaline) — hospitals, doctors, pacientes. Se consume `hospitals` cuando exista la URL en **Azure**.
+
+Hasta que esas URLs existan, deja `BIBLIO_API_URL` y `HOSPITALINE_API_URL` vacías.
+
+El tag `v1.0.0` marca Seguimiento #1. El tag `v2.0.0` se crea al terminar Seguimiento #2.
+
+## Orquestador
+
+Microservicio en `orchestrator/`. Arranca el saga `POST /api/v2/flujo` (puerto 3001). Guía: [`orchestrator/README.md`](./orchestrator/README.md).
 
 Primero intenta `.../last` del compañero; si aún no existe, usa su listado y toma el último ítem. Configura `BIBLIO_API_URL` y `HOSPITALINE_API_URL` en `.env`. Si un peer falla, `local` sigue saliendo y el peer marca `live: false` (nunca se inventan datos).
 
