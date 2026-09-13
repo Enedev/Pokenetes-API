@@ -9,6 +9,12 @@ export const mockEnv: AppEnv = {
   SUPABASE_PUBLISHABLE_KEY: 'test-publishable-key',
   SUPABASE_SECRET_KEY: 'test-secret-key',
   SUPABASE_JWKS_URL: 'https://test.supabase.co/auth/v1/.well-known/jwks.json',
+  BIBLIO_API_URL: 'https://biblio.example.test',
+  BIBLIO_LAST_PATH: '/api/v2/books/last',
+  BIBLIO_LIST_PATH: '/api/books',
+  HOSPITALINE_API_URL: 'https://hospitaline.example.test',
+  HOSPITALINE_LAST_PATH: '/api/v2/hospitals/last',
+  HOSPITALINE_LIST_PATH: '/api/v1/hospitals',
 };
 
 export function createInsertClient(result: unknown, error: { message: string } | null = null): SupabaseClient {
@@ -47,6 +53,7 @@ export function createCrudClient(
     query.update = vi.fn(self);
     query.delete = vi.fn(self);
     query.eq = vi.fn(self);
+    query.order = vi.fn(self);
     query.limit = vi.fn(self);
     query.single = vi.fn(async () => payload);
     query.then = (
