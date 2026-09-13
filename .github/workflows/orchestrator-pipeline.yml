@@ -1,0 +1,43 @@
+name: Orchestrator Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'orchestrator/**'
+      - '.github/workflows/orchestrator-pipeline.yml'
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'orchestrator/**'
+      - '.github/workflows/orchestrator-pipeline.yml'
+  workflow_dispatch:
+
+jobs:
+  build-orchestrator:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: orchestrator/package-lock.json
+
+      - name: Install orchestrator dependencies
+        working-directory: orchestrator
+        run: npm ci
+
+      - name: Build orchestrator
+        working-directory: orchestrator
+        run: npm run build
+
+      - name: Build orchestrator image
+        run: docker build -t pokenetes-orchestrator:${{ github.sha }} -f orchestrator/Dockerfile orchestrator
