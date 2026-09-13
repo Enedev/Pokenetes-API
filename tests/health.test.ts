@@ -22,6 +22,6 @@ describe('GET /health', () => {
     const response = await app.inject({ method: 'GET', url: '/health' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ status: 'ok', environment: 'test' });
+    expect(response.json()).toMatchObject({ status: 'ok', environment: 'test', version: '2.0.0' });
   });
 });
