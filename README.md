@@ -1,6 +1,6 @@
 # Pokenetes
 
-API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. Usa **Supabase** como base de datos, con un entorno de pruebas (`dev`) y uno de producción (`main`).
+API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. Usa **Supabase** como base de datos, con un entorno de pruebas (`dev`) y uno de producción (`main`). Versión actual: **2.0.0** (`/api/v2`).
 
 - Test: https://pokenetes-api-test.onrender.com
 - Producción: https://pokenetes-api-prod.onrender.com
@@ -154,6 +154,45 @@ Cada entidad expone todos estos verbos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`,
 | `QUERY` | `/query` | Consulta genérica (`entity` + `limit`) |
 
 `HEAD` lo genera Fastify a partir de cada `GET`. `QUERY` en Render/Cloudflare puede devolver `405`; en local funciona.
+
+Las mismas rutas de negocio existen bajo `/api/v2` (listar, crear, actualizar, borrar). El GET all de v2 **no** mezcla APIs ajenas.
+
+### GET /api/v2/{entidad}/last
+
+Trae el **último registro local** y, en vivo, **un registro de cada API compañera**. No hay IDs compartidos entre nubes, por eso no se usa GET by id cruzado.
+
+| Método | Ruta | Qué devuelve |
+|---|---|---|
+| `GET` | `/api/v2/pokemon/last` | último pokemon + book (biblio-express) + hospital (Hospitaline) |
+| `GET` | `/api/v2/entrenador/last` | último entrenador + los mismos peers |
+| `GET` | `/api/v2/batalla/last` | última batalla + los mismos peers |
+
+```bash
+curl http://localhost:3000/api/v2/pokemon/last
+```
+
+Respuesta (los peers cambian porque se leen en tiempo real):
+
+```json
+{
+  "api": "pokenetes",
+  "version": "2.0.0",
+  "trace_id": "...",
+  "entity": "pokemon",
+  "local": { "id": "...", "nombre": "Pikachu" },
+  "peers": {
+    "biblio-express": { "live": true, "entity": "books", "data": { "title": "..." } },
+    "hospitaline": { "live": true, "entity": "hospitals", "data": { "name": "..." } }
+  }
+}
+```
+
+APIs compañeras:
+
+- [biblio-express](https://github.com/PholCast/biblio-express) — users, books, loans. Se consume `books`.
+- [Hospitaline](https://github.com/Dhani-dev/Hospitaline) — hospitals, doctors, pacientes. Se consume `hospitals` (`https://hospitaline-dev.onrender.com`).
+
+Primero intenta `.../last` del compañero; si aún no existe, usa su listado y toma el último ítem. Configura `BIBLIO_API_URL` y `HOSPITALINE_API_URL` en `.env`. Si un peer falla, `local` sigue saliendo y el peer marca `live: false` (nunca se inventan datos).
 
 ### Ejemplos
 
