@@ -313,7 +313,8 @@ src/
   db/client.ts          Cliente Supabase
   db/migrate.ts         Migraciones / verificación de tablas
   db/schemas/           DDL de pokemon, entrenador, batalla
-  routes/               REST de las 3 entidades
+  routes/               REST de las 3 entidades + last v2
+  integrations/         Cliente HTTP de APIs compañeras
 tests/                  Vitest
 docker/init.sql         Tablas para Postgres local
 Dockerfile              Imagen de la API
