@@ -7,9 +7,10 @@ export async function pokemonRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
+  path = '/pokemon',
 ): Promise<void> {
   await registerRestResource(app, env, supabaseClient, {
-    path: '/pokemon',
+    path,
     table: 'pokemon',
     parsePost: (body) => {
       const nombre = body.nombre;

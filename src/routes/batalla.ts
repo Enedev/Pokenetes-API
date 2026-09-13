@@ -7,9 +7,10 @@ export async function batallaRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
+  path = '/batalla',
 ): Promise<void> {
   await registerRestResource(app, env, supabaseClient, {
-    path: '/batalla',
+    path,
     table: 'batalla',
     parsePost: (body) => {
       if (typeof body.pokemon_id !== 'string' || typeof body.entrenador_id !== 'string') {

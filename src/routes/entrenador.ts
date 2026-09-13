@@ -7,9 +7,10 @@ export async function entrenadorRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
+  path = '/entrenador',
 ): Promise<void> {
   await registerRestResource(app, env, supabaseClient, {
-    path: '/entrenador',
+    path,
     table: 'entrenador',
     parsePost: (body) => {
       if (typeof body.nombre !== 'string') {

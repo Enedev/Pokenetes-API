@@ -14,10 +14,11 @@ export async function queryRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
+  path = '/query',
 ): Promise<void> {
   app.route<{ Body: QueryBody }>({
     method: 'QUERY',
-    url: '/query',
+    url: path,
     handler: async (request, reply) => {
       const { entity, limit = 10 } = request.body ?? {};
 
