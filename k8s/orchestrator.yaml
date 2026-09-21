@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pokenetes-orchestrator
+  namespace: pokenetes
+  labels:
+    app: pokenetes-orchestrator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pokenetes-orchestrator
+  template:
+    metadata:
+      labels:
+        app: pokenetes-orchestrator
+    spec:
+      containers:
+        - name: orchestrator
+          image: IMAGE_ORCHESTRATOR
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: pokenetes-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pokenetes-config
+                  key: ORCHESTRATOR_PORT
+            - name: POKENETES_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pokenetes-secrets
+                  key: POKENETES_API_URL
+            - name: BIBLIO_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pokenetes-secrets
+                  key: BIBLIO_API_URL
+            - name: HOSPITALINE_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pokenetes-secrets
+                  key: HOSPITALINE_API_URL
+            - name: BIBLIO_LAST_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: pokenetes-config
+                  key: BIBLIO_LAST_PATH
+            - name: BIBLIO_LIST_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: pokenetes-config
+                  key: BIBLIO_LIST_PATH
+            - name: HOSPITALINE_LAST_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: pokenetes-config
+                  key: HOSPITALINE_LAST_PATH
+            - name: HOSPITALINE_LIST_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: pokenetes-config
+                  key: HOSPITALINE_LIST_PATH
+            - name: AWS_SQS_QUEUE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pokenetes-secrets
+                  key: AWS_SQS_QUEUE_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pokenetes-orchestrator
+  namespace: pokenetes
+spec:
+  type: LoadBalancer
+  selector:
+    app: pokenetes-orchestrator
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3001
