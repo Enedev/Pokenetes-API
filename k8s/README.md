@@ -58,13 +58,15 @@ Tiene que haber 2 nodos `Ready`.
 ```powershell
 copy k8s\secret.yaml.example k8s\secret.yaml
 # edita k8s\secret.yaml con tus valores de .env.test
+# o: node scripts\write-k8s-secret.mjs
+# POKENETES_API_URL debe ser http://pokenetes-api (puerto 80 del Service)
 
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/secret.yaml
 ```
 
-Sustituye `IMAGE_API` e `IMAGE_ORCHESTRATOR` en `k8s/api.yaml` y `k8s/orchestrator.yaml` por las URIs de ECR. Luego:
+Las imágenes de `api.yaml` y `orchestrator.yaml` ya apuntan a ECR. Luego:
 
 ```powershell
 kubectl apply -f k8s/api.yaml
