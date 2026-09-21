@@ -24,8 +24,10 @@ aws sqs create-queue --queue-name pokenetes-flujo --region $Region | Out-Null
 aws logs create-log-group --log-group-name /pokenetes/api --region $Region 2>$null | Out-Null
 aws logs create-log-group --log-group-name /pokenetes/orchestrator --region $Region 2>$null | Out-Null
 
+Write-Host "Secrets Manager is created/updated with scripts/put-secrets-manager-test.mjs (needs .env.test)."
+
 Write-Host ""
 Write-Host "Verify:"
 Write-Host "  aws ecr describe-repositories --region $Region"
 Write-Host "  aws sqs list-queues --region $Region"
-Write-Host "  aws logs describe-log-groups --log-group-name-prefix /pokenetes --region $Region"
+Write-Host "  aws secretsmanager describe-secret --secret-id pokenetes/test --region $Region"
