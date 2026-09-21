@@ -9,3 +9,5 @@ dist/
 *.log
 .DS_Store
 RENDER_SETUP.md
+k8s/secret.yaml
+
