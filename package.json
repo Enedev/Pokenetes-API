@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/Enedev/Pokenetes#readme",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1136.0",
     "@supabase/supabase-js": "^2.112.3",
     "dotenv": "^17.4.2",
     "fastify": "^5.12.0",
