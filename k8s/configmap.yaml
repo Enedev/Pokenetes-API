@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pokenetes-config
+  namespace: pokenetes
+data:
+  NODE_ENV: "test"
+  PORT: "3000"
+  ORCHESTRATOR_PORT: "3001"
+  BIBLIO_LAST_PATH: "/api/v2/books/last"
+  BIBLIO_LIST_PATH: "/api/books"
+  HOSPITALINE_LAST_PATH: "/api/v2/hospitals/last"
+  HOSPITALINE_LIST_PATH: "/api/v1/hospitals"
