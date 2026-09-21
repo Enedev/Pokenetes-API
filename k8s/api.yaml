@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: IMAGE_API
+          image: 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
