@@ -53,17 +53,29 @@ kubectl get nodes
 
 Tiene que haber 2 nodos `Ready`.
 
-## 5. Secretos y manifiestos
+## 5. AWS Secrets Manager (el cofre del diagrama)
+
+En EKS los pods leen `pokenetes/test` al arrancar. Localmente sigues usando `.env.test` (no pongas `AWS_SECRETS_MANAGER_SECRET_ID`).
 
 ```powershell
-copy k8s\secret.yaml.example k8s\secret.yaml
-# edita k8s\secret.yaml con tus valores de .env.test
-# o: node scripts\write-k8s-secret.mjs
-# POKENETES_API_URL debe ser http://pokenetes-api (puerto 80 del Service)
+node scripts\put-secrets-manager-test.mjs
+```
 
+Eso crea o actualiza el secreto en la consola: **Secrets Manager → pokenetes/test**.
+
+Los nodos del cluster necesitan permiso de lectura (una vez):
+
+```powershell
+$role = aws eks describe-nodegroup --cluster-name pokenetes-test --nodegroup-name ng-test --query nodegroup.nodeRole --output text --region us-east-1
+$roleName = ($role -split "/")[-1]
+aws iam put-role-policy --role-name $roleName --policy-name pokenetes-secrets-manager --policy-document file://k8s/iam-secrets-manager-policy.json
+```
+
+Luego manifiestos (ya no hace falta `k8s/secret.yaml` en EKS):
+
+```powershell
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml
 ```
 
 Las imágenes de `api.yaml` y `orchestrator.yaml` ya apuntan a ECR. Luego:
