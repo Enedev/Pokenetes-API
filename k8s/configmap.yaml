@@ -11,3 +11,5 @@ data:
   BIBLIO_LIST_PATH: "/api/books"
   HOSPITALINE_LAST_PATH: "/api/v2/hospitals/last"
   HOSPITALINE_LIST_PATH: "/api/v1/hospitals"
+  AWS_REGION: "us-east-1"
+  AWS_SECRETS_MANAGER_SECRET_ID: "pokenetes/test"
