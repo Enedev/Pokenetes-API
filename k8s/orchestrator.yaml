@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: orchestrator
-          image: IMAGE_ORCHESTRATOR
+          image: 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-orchestrator:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3001
