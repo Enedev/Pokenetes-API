@@ -6,7 +6,7 @@ metadata:
   labels:
     app: pokenetes-orchestrator
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: pokenetes-orchestrator
