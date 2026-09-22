@@ -1,0 +1,4 @@
+{
+  "RedrivePolicy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:us-east-1:722500516562:pokenetes-flujo-dlq\",\"maxReceiveCount\":\"3\"}",
+  "VisibilityTimeout": "60"
+}
