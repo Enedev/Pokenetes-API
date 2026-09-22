@@ -1,7 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
+import { API_VERSION, API_V2_PREFIX } from '../config/version';
 import { getSupabaseClient } from '../db/client';
+import { resolveTraceId } from '../http/trace';
+import { FetchLike, fetchConfiguredPeers } from '../integrations/peer-client';
 
 type Json = Record<string, unknown>;
 
@@ -15,6 +18,7 @@ export interface RestResourceConfig {
   parsePost: (body: Json) => ParseResult;
   parsePut: (body: Json) => ParseResult;
   parsePatch: (body: Json) => ParseResult;
+  fetchImpl?: FetchLike;
 }
 
 export async function registerRestResource(
@@ -47,7 +51,21 @@ export async function registerRestResource(
       return reply.status(404).send(notFound);
     }
 
-    return reply.status(200).send(data);
+    if (!config.path.startsWith(API_V2_PREFIX)) {
+      return reply.status(200).send(data);
+    }
+
+    const traceId = resolveTraceId(request.headers['x-trace-id']);
+    const peers = await fetchConfiguredPeers(env, traceId, config.fetchImpl);
+
+    return reply.status(200).send({
+      api: 'pokenetes',
+      version: API_VERSION,
+      trace_id: traceId,
+      entity: config.table,
+      local: data,
+      peers,
+    });
   });
 
   app.post<{ Body: Json }>(config.path, async (request, reply) => {
