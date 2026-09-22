@@ -2,16 +2,19 @@ import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
 import { registerRestResource } from './rest';
+import { FetchLike } from '../integrations/peer-client';
 
 export async function pokemonRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
   path = '/pokemon',
+  fetchImpl?: FetchLike,
 ): Promise<void> {
   await registerRestResource(app, env, supabaseClient, {
     path,
     table: 'pokemon',
+    fetchImpl,
     parsePost: (body) => {
       const nombre = body.nombre;
       const tipo = body.tipo;

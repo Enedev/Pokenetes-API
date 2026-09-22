@@ -39,6 +39,7 @@ export async function buildApp(
         entrenador: `GET|POST|PUT|PATCH|DELETE|HEAD|QUERY ${API_V2_PREFIX}/entrenador`,
         batalla: `GET|POST|PUT|PATCH|DELETE|HEAD|QUERY ${API_V2_PREFIX}/batalla`,
         last: `GET ${API_V2_PREFIX}/{pokemon|entrenador|batalla}/last`,
+        getById: `GET ${API_V2_PREFIX}/{pokemon|entrenador|batalla}/:id`,
         query: `QUERY ${API_V2_PREFIX}/query`,
       },
     },
@@ -50,10 +51,10 @@ export async function buildApp(
     environment: env.NODE_ENV,
   }));
 
-  await lastRoutes(app, env, supabase, fetchImpl);
-  await pokemonRoutes(app, env, supabase, `${API_V2_PREFIX}/pokemon`);
-  await entrenadorRoutes(app, env, supabase, `${API_V2_PREFIX}/entrenador`);
-  await batallaRoutes(app, env, supabase, `${API_V2_PREFIX}/batalla`);
+  await lastRoutes(app, env, supabase);
+  await pokemonRoutes(app, env, supabase, `${API_V2_PREFIX}/pokemon`, fetchImpl);
+  await entrenadorRoutes(app, env, supabase, `${API_V2_PREFIX}/entrenador`, fetchImpl);
+  await batallaRoutes(app, env, supabase, `${API_V2_PREFIX}/batalla`, fetchImpl);
   await queryRoutes(app, env, supabase, `${API_V2_PREFIX}/query`);
   await pokemonRoutes(app, env, supabase);
   await entrenadorRoutes(app, env, supabase);

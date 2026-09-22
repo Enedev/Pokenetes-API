@@ -2,16 +2,19 @@ import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
 import { registerRestResource } from './rest';
+import { FetchLike } from '../integrations/peer-client';
 
 export async function batallaRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
   path = '/batalla',
+  fetchImpl?: FetchLike,
 ): Promise<void> {
   await registerRestResource(app, env, supabaseClient, {
     path,
     table: 'batalla',
+    fetchImpl,
     parsePost: (body) => {
       if (typeof body.pokemon_id !== 'string' || typeof body.entrenador_id !== 'string') {
         return { ok: false, error: 'pokemon_id and entrenador_id are required' };
