@@ -19,6 +19,7 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     status: 'ok',
     service: 'pokenetes-orchestrator',
     environment: env.NODE_ENV,
+    queue: env.AWS_SQS_QUEUE_URL ? 'sqs' : 'memory',
   }));
 
   app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo', async (request, reply) => {
