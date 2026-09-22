@@ -21,6 +21,7 @@ Ensure-Ecr "pokenetes-orchestrator"
 
 aws sqs create-queue --queue-name pokenetes-flujo-dlq --region $Region | Out-Null
 aws sqs create-queue --queue-name pokenetes-flujo --region $Region | Out-Null
+aws sqs set-queue-attributes --queue-url "https://sqs.$Region.amazonaws.com/722500516562/pokenetes-flujo" --attributes file://k8s/sqs-queue-attributes.json --region $Region | Out-Null
 aws logs create-log-group --log-group-name /pokenetes/api --region $Region 2>$null | Out-Null
 aws logs create-log-group --log-group-name /pokenetes/orchestrator --region $Region 2>$null | Out-Null
 
