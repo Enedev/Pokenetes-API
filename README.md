@@ -155,23 +155,23 @@ Cada entidad expone todos estos verbos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`,
 
 `HEAD` lo genera Fastify a partir de cada `GET`. `QUERY` en Render/Cloudflare puede devolver `405`; en local funciona.
 
-Las mismas rutas de negocio existen bajo `/api/v2` (listar, crear, actualizar, borrar). El GET all de v2 **no** mezcla APIs ajenas.
+Las mismas rutas de negocio existen bajo `/api/v2` (listar, crear, actualizar, borrar). El GET all de v2 **no** mezcla APIs ajenas. El GET by id de v2 **sí** pide el last de las otras nubes.
 
 ### GET /api/v2/{entidad}/last
 
-Trae el **último registro local** y, en vivo, **un registro de cada API compañera**. No hay IDs compartidos entre nubes, por eso no se usa GET by id cruzado.
-
-| Método | Ruta | Qué devuelve |
-|---|---|---|
-| `GET` | `/api/v2/pokemon/last` | último pokemon + book (biblio-express) + hospital (Hospitaline) |
-| `GET` | `/api/v2/entrenador/last` | último entrenador + los mismos peers |
-| `GET` | `/api/v2/batalla/last` | última batalla + los mismos peers |
+Solo el **último registro local**. Sin `peers`.
 
 ```bash
 curl http://localhost:3000/api/v2/pokemon/last
 ```
 
-Respuesta (los peers cambian porque se leen en tiempo real):
+### GET /api/v2/{entidad}/:id
+
+Uno local (ese id) + last en vivo de biblio-express y Hospitaline. Así salen los 3 objetos.
+
+```bash
+curl http://localhost:3000/api/v2/pokemon/UUID
+```
 
 ```json
 {
@@ -200,7 +200,7 @@ El tag `v1.0.0` marca Seguimiento #1. El tag `v2.0.0` se crea al terminar Seguim
 
 Microservicio en `orchestrator/`. Arranca el saga `POST /api/v2/flujo` (puerto 3001). Guía: [`orchestrator/README.md`](./orchestrator/README.md).
 
-Primero intenta `.../last` del compañero; si aún no existe, usa su listado y toma el último ítem. Configura `BIBLIO_API_URL` y `HOSPITALINE_API_URL` en `.env`. Si un peer falla, `local` sigue saliendo y el peer marca `live: false` (nunca se inventan datos).
+El GET by id de v2 intenta `.../last` del compañero; si aún no existe, usa su listado y toma el último ítem. Configura `BIBLIO_API_URL` y `HOSPITALINE_API_URL` en `.env` o en Secrets Manager. Si un peer falla, `local` sigue saliendo y el peer marca `live: false` (nunca se inventan datos).
 
 ### Ejemplos
 
