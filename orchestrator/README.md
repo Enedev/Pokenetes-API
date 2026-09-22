@@ -37,7 +37,7 @@ Si biblio u Hospitaline todavía no tienen URL en Oracle/Azure, esos pasos salen
 | `POKENETES_API_URL` | `http://127.0.0.1:3000` | Tu API en AWS (hoy local o Render) |
 | `BIBLIO_API_URL` | vacía | URL pública OCI cuando Phol la tenga |
 | `HOSPITALINE_API_URL` | vacía | URL pública Azure cuando Dhani la tenga |
-| `AWS_SQS_QUEUE_URL` | vacía | Se usa cuando exista la cola en AWS |
+| `AWS_SQS_QUEUE_URL` | vacía | En EKS: `pokenetes-flujo`. Vacío = cola en memoria (local/tests) |
 
 ## Docker
 
@@ -50,4 +50,4 @@ El pipeline `Orchestrator Pipeline` instala, compila y hace `docker build` de es
 
 ## AWS
 
-La cuenta y los clics de consola no van en este archivo. El orquestador se publica luego en ECS Fargate; la cola será SQS + DLQ.
+SQS `pokenetes-flujo` + DLQ `pokenetes-flujo-dlq`. `POST /api/v2/flujo` encola el mensaje; un worker del mismo pod lo consume y corre el saga. Con cola, el POST vuelve `202 pending`: consulta `GET /api/v2/flujo/:traceId`.
