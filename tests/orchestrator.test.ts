@@ -67,4 +67,10 @@ describe('orchestrator flujo', () => {
     const response = await app.inject({ method: 'GET', url: '/api/v2/flujo/missing' });
     expect(response.statusCode).toBe(404);
   });
+
+  it('reports an in-memory queue on health when SQS is not configured', async () => {
+    const app = await buildOrchestratorApp(env, vi.fn());
+    const response = await app.inject({ method: 'GET', url: '/health' });
+    expect(response.json()).toMatchObject({ status: 'ok', queue: 'memory' });
+  });
 });
