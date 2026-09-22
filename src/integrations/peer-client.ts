@@ -113,3 +113,42 @@ export async function fetchPeerLast(options: {
     }
   }
 }
+
+export async function fetchConfiguredPeers(
+  env: {
+    BIBLIO_API_URL?: string;
+    BIBLIO_LAST_PATH: string;
+    BIBLIO_LIST_PATH: string;
+    HOSPITALINE_API_URL?: string;
+    HOSPITALINE_LAST_PATH: string;
+    HOSPITALINE_LIST_PATH: string;
+  },
+  traceId: string,
+  fetchImpl?: FetchLike,
+): Promise<Record<string, PeerRecord>> {
+  const [biblio, hospitaline] = await Promise.all([
+    fetchPeerLast({
+      api: 'biblio-express',
+      entity: 'books',
+      baseUrl: env.BIBLIO_API_URL,
+      lastPath: env.BIBLIO_LAST_PATH,
+      listPath: env.BIBLIO_LIST_PATH,
+      traceId,
+      fetchImpl,
+    }),
+    fetchPeerLast({
+      api: 'hospitaline',
+      entity: 'hospitals',
+      baseUrl: env.HOSPITALINE_API_URL,
+      lastPath: env.HOSPITALINE_LAST_PATH,
+      listPath: env.HOSPITALINE_LIST_PATH,
+      traceId,
+      fetchImpl,
+    }),
+  ]);
+
+  return {
+    'biblio-express': biblio,
+    hospitaline,
+  };
+}
