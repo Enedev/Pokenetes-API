@@ -21,6 +21,12 @@ const payload = {
   HOSPITALINE_API_URL: env.HOSPITALINE_API_URL || "",
   AWS_SQS_QUEUE_URL: sqs,
 };
+if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+  payload.OTEL_EXPORTER_OTLP_ENDPOINT = env.OTEL_EXPORTER_OTLP_ENDPOINT;
+}
+if (env.OTEL_EXPORTER_OTLP_HEADERS) {
+  payload.OTEL_EXPORTER_OTLP_HEADERS = env.OTEL_EXPORTER_OTLP_HEADERS;
+}
 
 const tmp = path.join(os.tmpdir(), "pokenetes-sm-payload.json");
 fs.writeFileSync(tmp, JSON.stringify(payload));
