@@ -1,3 +1,5 @@
+import { tracedHeaders } from '../http/trace';
+
 export interface PeerRecord {
   api: string;
   source: string;
@@ -42,10 +44,7 @@ function pickLastRecord(payload: unknown): unknown {
 
 async function fetchJson(url: string, traceId: string, fetchImpl: FetchLike): Promise<unknown> {
   const response = await fetchImpl(url, {
-    headers: {
-      Accept: 'application/json',
-      'x-trace-id': traceId,
-    },
+    headers: tracedHeaders(traceId),
     signal: AbortSignal.timeout(5000),
   });
 

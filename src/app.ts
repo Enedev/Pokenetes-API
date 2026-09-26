@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import { AppEnv } from './config/env';
 import { API_VERSION, API_V2_PREFIX } from './config/version';
 import { runMigrations } from './db/migrate';
-import { resolveTraceId } from './http/trace';
+import { observeRequests, resolveTraceId } from './http/trace';
 import { pokemonRoutes } from './routes/pokemon';
 import { entrenadorRoutes } from './routes/entrenador';
 import { batallaRoutes } from './routes/batalla';
@@ -20,6 +20,7 @@ export async function buildApp(
   app.addHook('onRequest', async (request) => {
     request.headers['x-trace-id'] = resolveTraceId(request.headers['x-trace-id']);
   });
+  observeRequests(app);
 
   app.get('/', async () => ({
     name: 'Pokenetes API',
