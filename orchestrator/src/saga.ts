@@ -1,7 +1,10 @@
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { OrchestratorEnv } from './config/env';
 import { fetchStep } from './http';
 import { getFlujo, saveFlujo } from './store';
 import { FetchLike, FlujoMessage } from './types';
+
+const tracer = trace.getTracer('pokenetes-orchestrator');
 
 export async function runSaga(
   message: FlujoMessage,
@@ -40,13 +43,25 @@ export async function runSaga(
   current.steps = [];
 
   for (const step of plan) {
-    const result = await fetchStep({
-      baseUrl: step.baseUrl,
-      lastPath: step.lastPath,
-      listPath: step.listPath,
-      traceId: current.trace_id,
-      fetchImpl,
-    });
+    const result = await tracer.startActiveSpan(
+      `flujo.${step.name}`,
+      { attributes: { cloud: step.cloud, peer: step.name, entity: current.entity } },
+      async (child) => {
+        const stepResult = await fetchStep({
+          baseUrl: step.baseUrl,
+          lastPath: step.lastPath,
+          listPath: step.listPath,
+          traceId: current.trace_id,
+          fetchImpl,
+        });
+        child.setAttribute('flujo.status', stepResult.status);
+        if (stepResult.status === 'failed') {
+          child.setStatus({ code: SpanStatusCode.ERROR, message: stepResult.error });
+        }
+        child.end();
+        return stepResult;
+      },
+    );
 
     current.steps.push({
       name: step.name,

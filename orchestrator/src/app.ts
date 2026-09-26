@@ -4,12 +4,14 @@ import { OrchestratorEnv } from './config/env';
 import { ConfiguredSqsQueue, MemoryQueue } from './queue';
 import { runSaga } from './saga';
 import { getFlujo, listFlujos, saveFlujo } from './store';
+import { observeRequests } from './http';
 import { FetchLike, FlujoMessage } from './types';
 
 const ENTITIES = ['pokemon', 'entrenador', 'batalla'] as const;
 
 export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: FetchLike = fetch) {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
+  observeRequests(app);
   const memory = new MemoryQueue(async (message) => {
     await runSaga(message, env, fetchImpl);
   });
@@ -51,7 +53,7 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     saveFlujo(message);
     await queue.enqueue(message);
 
-    return reply.status(202).send(getFlujo(traceId));
+    return reply.status(202).header('x-trace-id', traceId).send(getFlujo(traceId));
   });
 
   app.get<{ Params: { traceId: string } }>('/api/v2/flujo/:traceId', async (request, reply) => {
@@ -61,7 +63,7 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
       return reply.status(404).send({ error: 'flujo not found' });
     }
 
-    return reply.status(200).send(found);
+    return reply.status(200).header('x-trace-id', found.trace_id).send(found);
   });
 
   app.get('/api/v2/flujo', async () => listFlujos());
