@@ -40,6 +40,7 @@ describe('orchestrator flujo', () => {
 
     expect(created.statusCode).toBe(202);
     const body = created.json();
+    expect(created.headers['x-trace-id']).toBe(body.trace_id);
     expect(body.status).toBe('completed');
     expect(body.steps[0]).toMatchObject({ name: 'pokenetes', cloud: 'aws', status: 'ok' });
     expect(body.steps[0].data).toEqual({ nombre: 'Pikachu' });
