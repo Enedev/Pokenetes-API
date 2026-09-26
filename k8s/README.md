@@ -94,5 +94,10 @@ kubectl get pods -n pokenetes
 
 curl http://<EXTERNAL-IP-API>/health
 curl http://<EXTERNAL-IP-ORQ>/health
-curl -X POST http://<EXTERNAL-IP-ORQ>/api/v2/flujo -H "Content-Type: application/json" -d "{\"entity\":\"pokemon\"}"
+```
+
+Entrada del orquestador según el diagrama (API Gateway, TLS, rate limit, trace-id):
+
+```powershell
+.\scripts\aws-api-gateway-test.ps1
 ```

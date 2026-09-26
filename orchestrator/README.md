@@ -51,3 +51,15 @@ El pipeline `Orchestrator Pipeline` instala, compila y hace `docker build` de es
 ## AWS
 
 SQS `pokenetes-flujo` + DLQ `pokenetes-flujo-dlq`. `POST /api/v2/flujo` encola el mensaje; un worker del mismo pod lo consume y corre el saga. Con cola, el POST vuelve `202 pending`: consulta `GET /api/v2/flujo/:traceId`.
+
+La entrada pública del diagrama es API Gateway (HTTPS), no el Load Balancer a pelo:
+
+```powershell
+.\scripts\aws-api-gateway-test.ps1
+```
+
+Eso crea `pokenetes-orchestrator` en API Gateway HTTP API, región `us-east-1`, stage `test`:
+
+- TLS: la URL es `https://....execute-api.us-east-1.amazonaws.com`
+- Rate limit: 10 req/s, ráfaga 20
+- `x-trace-id`: se reenvía al orquestador; si no viene, el orquestador genera uno y lo devuelve en el JSON y en el header `x-trace-id`
