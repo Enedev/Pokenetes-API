@@ -1,3 +1,5 @@
+import { propagation } from '@opentelemetry/api';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
@@ -11,6 +13,7 @@ export function startTelemetry(serviceName: string): void {
   if (started || process.env.OTEL_SDK_DISABLED === 'true') return;
   if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) return;
 
+  propagation.setGlobalPropagator(new W3CTraceContextPropagator());
   started = true;
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({
