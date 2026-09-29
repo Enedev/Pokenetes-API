@@ -39,6 +39,7 @@ flowchart TD
         secrets[Secrets Manager]
     end
     subgraph observabilidad [Observabilidad]
+        otel[OpenTelemetry]
         cloudwatch[CloudWatch]
         grafana[Grafana Cloud]
     end
@@ -46,7 +47,7 @@ flowchart TD
     postman -->|envia el flujo| apigw
     apigw -->|HTTPS| elb
     elb -->|entra al cluster| eks
-    ecr -->|imagenes| eks
+    ecr -->|entrega las imagenes| eks
     eks -->|corre en| ec2
     eks -->|pod| orchestrator
     eks -->|pods| api
@@ -55,10 +56,12 @@ flowchart TD
     orchestrator -->|lee secretos| secrets
     api -->|lee secretos| secrets
     api -->|guarda datos| rds
-    orchestrator -->|escribe logs| cloudwatch
-    api -->|escribe logs| cloudwatch
-    orchestrator -->|trazas y metricas| grafana
-    api -->|trazas y metricas| grafana
+    orchestrator -->|trazas y metricas RED| otel
+    api -->|trazas y metricas RED| otel
+    otel -->|traceparent| grafana
+    orchestrator -->|logs con x-trace-id| cloudwatch
+    api -->|logs con x-trace-id| cloudwatch
+    cloudwatch -->|logs y metricas de la nube| grafana
 ```
 
 ---
