@@ -20,23 +20,45 @@ El tablero compartido es Grafana Cloud.
 Neithan opera esta nube. Phol opera Azure y Dhani opera GCP; el diagrama completo de las tres se arma aparte.
 
 ```mermaid
-flowchart LR
-    postman[Postman] --> apigw[API Gateway]
-    apigw --> elb[Elastic Load Balancing]
-    ecr[ECR] --> eks[EKS]
-    elb --> eks
-    eks --> ec2[EC2]
-    eks --> orchestrator[Orquestador]
-    eks --> api[API Pokenetes]
-    orchestrator --> sqs[SQS y DLQ]
-    orchestrator --> api
-    api --> rds[RDS Postgres]
-    api --> secrets[Secrets Manager]
-    orchestrator --> secrets
-    api --> cloudwatch[CloudWatch]
-    orchestrator --> cloudwatch
-    orchestrator --> grafana[Grafana Cloud]
-    api --> grafana
+flowchart TD
+    subgraph acceso [Acceso]
+        postman[Postman]
+        apigw[API Gateway]
+        elb[Elastic Load Balancing]
+    end
+    subgraph computo [Computo]
+        ecr[ECR]
+        eks[EKS]
+        ec2[EC2]
+        orchestrator[Orquestador]
+        api[API Pokenetes]
+    end
+    subgraph datos [Datos]
+        sqs[SQS y DLQ]
+        rds[RDS Postgres]
+        secrets[Secrets Manager]
+    end
+    subgraph observabilidad [Observabilidad]
+        cloudwatch[CloudWatch]
+        grafana[Grafana Cloud]
+    end
+
+    postman -->|envia el flujo| apigw
+    apigw -->|HTTPS| elb
+    elb -->|entra al cluster| eks
+    ecr -->|imagenes| eks
+    eks -->|corre en| ec2
+    eks -->|pod| orchestrator
+    eks -->|pods| api
+    orchestrator -->|llama el last| api
+    orchestrator -->|encola| sqs
+    orchestrator -->|lee secretos| secrets
+    api -->|lee secretos| secrets
+    api -->|guarda datos| rds
+    orchestrator -->|escribe logs| cloudwatch
+    api -->|escribe logs| cloudwatch
+    orchestrator -->|trazas y metricas| grafana
+    api -->|trazas y metricas| grafana
 ```
 
 ---
