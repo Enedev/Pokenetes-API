@@ -64,6 +64,43 @@ flowchart TD
     cloudwatch -->|logs y metricas de la nube| grafana
 ```
 
+## Observabilidad de las tres nubes
+
+Cada uno manda trazas con OpenTelemetry al mismo Grafana. Los logs se quedan primero en el monitor de su nube y Grafana los lee desde ahí.
+
+```mermaid
+flowchart TD
+    subgraph aws [AWS Neithan]
+        apiAws[API y orquestador]
+        otelAws[OpenTelemetry]
+        cw[CloudWatch]
+    end
+    subgraph azure [Azure Phol]
+        apiAz[biblio-express]
+        otelAz[OpenTelemetry]
+        azmon[Azure Monitor]
+    end
+    subgraph gcp [GCP Dhani]
+        apiGcp[Hospitaline]
+        otelGcp[OpenTelemetry]
+        gcplog[Cloud Logging]
+    end
+    grafana[Grafana Cloud]
+
+    apiAws -->|trazas y metricas RED| otelAws
+    apiAz -->|trazas y metricas RED| otelAz
+    apiGcp -->|trazas y metricas RED| otelGcp
+    otelAws -->|traceparent| grafana
+    otelAz -->|traceparent| grafana
+    otelGcp -->|traceparent| grafana
+    apiAws -->|logs con x-trace-id| cw
+    apiAz -->|logs con x-trace-id| azmon
+    apiGcp -->|logs con x-trace-id| gcplog
+    cw -->|logs y metricas| grafana
+    azmon -->|logs y metricas| grafana
+    gcplog -->|logs y metricas| grafana
+```
+
 ---
 
 ## Entornos y ramas
