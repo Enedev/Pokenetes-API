@@ -12,7 +12,10 @@ const MIGRATIONS = [
 ];
 
 async function applyMigrationsWithPg(databaseUrl: string): Promise<void> {
-  const client = new pg.Client({ connectionString: databaseUrl });
+  const client = new pg.Client({
+    connectionString: databaseUrl,
+    ssl: databaseUrl.includes('rds.amazonaws.com') ? { rejectUnauthorized: false } : undefined,
+  });
 
   try {
     await client.connect();
