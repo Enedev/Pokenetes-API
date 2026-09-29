@@ -1,0 +1,97 @@
+<mxfile host="app.diagrams.net" agent="Pokenetes">
+  <diagram id="pokenetes-arch" name="Arquitectura multicloud">
+    <mxGraphModel dx="1868" dy="1194" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#1B3A4B;" value="Arquitectura multicloud — Seguimiento #2. Pokenetes, biblio-express y Hospitaline" vertex="1">
+          <mxGeometry height="40" width="1200" x="240" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontColor=#445566;" value="Neithan (Enedev) opera AWS. Phol (PholCast) opera OCI. Dhani (Dhani-dev) opera Azure. Grafana Cloud es el tablero compartido." vertex="1">
+          <mxGeometry height="30" width="1200" x="240" y="58" as="geometry" />
+        </mxCell>
+        <mxCell id="client" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=13;fontStyle=1;" value="Cliente / Postman&#xa;POST /api/v2/flujo" vertex="1">
+          <mxGeometry height="70" width="180" x="40" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="apigw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=13;fontStyle=1;" value="API Gateway&#xa;HTTPS · rate limit · trace-id" vertex="1">
+          <mxGeometry height="70" width="200" x="300" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="orch" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1B3A4B;strokeColor=#0E2430;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" value="MS Orquestador&#xa;pokenetes-orchestrator&#xa;saga AWS → OCI → Azure&#xa;propaga x-trace-id y traceparent" vertex="1">
+          <mxGeometry height="110" width="250" x="580" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="sqs" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=13;fontStyle=1;" value="SQS pokenetes-flujo&#xa;+ DLQ&#xa;Neithan · AWS" vertex="1">
+          <mxGeometry height="90" width="190" x="900" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="awsbox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;dashed=0;" value="" vertex="1">
+          <mxGeometry height="430" width="500" x="40" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="awstitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#1B5E20;" value="NUBE AWS · Neithan (Enedev)&#xa;Orquestador + cola + API en EKS" vertex="1">
+          <mxGeometry height="50" width="460" x="55" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="eks" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=12;align=left;spacingLeft=8;" value="EKS pokenetes-test · Kubernetes 1.35&#xa;namespace pokenetes&#xa;API: 2 réplicas, probes, requests/limits, HPA&#xa;Orquestador: 1 réplica (worker de SQS)&#xa;ConfigMap + Secrets Manager" vertex="1">
+          <mxGeometry height="110" width="460" x="60" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="API Pokenetes · /api/v2&#xa;Entidades: pokemon, entrenador, batalla&#xa;/last solo local&#xa;GET by id = local + books + hospitals" vertex="1">
+          <mxGeometry height="100" width="220" x="60" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="sm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="Secrets Manager&#xa;pokenetes/test" vertex="1">
+          <mxGeometry height="70" width="220" x="300" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="cw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="CloudWatch&#xa;logs del clúster con trace_id&#xa;Container Insights" vertex="1">
+          <mxGeometry height="80" width="220" x="300" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="Postgres de Supabase&#xa;la API lee y escribe con el cliente Supabase&#xa;no hay RDS en esta cuenta AWS" vertex="1">
+          <mxGeometry height="70" width="160" x="90" y="630" as="geometry" />
+        </mxCell>
+        <mxCell id="ocibox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDECEA;strokeColor=#C62828;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="200" width="500" x="580" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="ocititle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#B71C1C;" value="NUBE OCI · Phol (PholCast)" vertex="1">
+          <mxGeometry height="30" width="460" x="595" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="biblio" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=12;align=left;spacingLeft=8;" value="API biblio-express · /api/v2&#xa;Entidad que consume Pokenetes: books&#xa;GET /api/v2/books/last&#xa;Su componente transversal (caché u object storage) lo documenta él" vertex="1">
+          <mxGeometry height="120" width="460" x="600" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="azbox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="200" width="500" x="1120" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="aztitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#0D47A1;" value="NUBE AZURE · Dhani (Dhani-dev)" vertex="1">
+          <mxGeometry height="30" width="460" x="1135" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="hosp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1565C0;fontSize=12;align=left;spacingLeft=8;" value="API Hospitaline · /api/v2&#xa;Entidad que consume Pokenetes: hospitals&#xa;GET /api/v2/hospitals/last&#xa;Su componente transversal (caché u object storage) lo documenta él" vertex="1">
+          <mxGeometry height="120" width="460" x="1140" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="graf" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=13;fontStyle=1;" value="Grafana Cloud · tablero del grupo&#xa;Métricas RED por endpoint · logs con trace_id&#xa;Trazas OpenTelemetry (traceparent + x-trace-id)&#xa;Alerta del grupo" vertex="1">
+          <mxGeometry height="90" width="1040" x="580" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="client" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="apigw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="apigw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;" target="orch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="orch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#D79B00;strokeWidth=2;" target="sqs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="orch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#2E7D32;fontSize=11;" target="api" value="pokemon /last">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="orch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#C62828;fontSize=11;dashed=1;" target="biblio" value="books /last">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="orch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#1565C0;fontSize=11;dashed=1;" target="hosp" value="hospitals /last">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="orch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#F9A825;fontSize=11;dashed=1;" target="graf" value="OTLP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#2E7D32;fontSize=11;dashed=1;" target="cw" value="logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#2E7D32;" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

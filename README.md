@@ -5,6 +5,29 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 - Test: https://pokenetes-api-test.onrender.com
 - Producción: https://pokenetes-api-prod.onrender.com
 
+## Quién opera cada nube
+
+| Integrante | Nube | Qué opera |
+|---|---|---|
+| Neithan (Enedev) | AWS | API Pokenetes en EKS, orquestador, SQS + DLQ, API Gateway, Secrets Manager, CloudWatch |
+| Phol (PholCast) | OCI | API biblio-express. Pokenetes consume `books` |
+| Dhani (Dhani-dev) | Azure | API Hospitaline. Pokenetes consume `hospitals` |
+
+El tablero compartido es Grafana Cloud. El diagrama editable está en [`docs/arquitectura-multicloud.drawio`](docs/arquitectura-multicloud.drawio). Se abre en [draw.io](https://app.diagrams.net/) con File → Open.
+
+```mermaid
+flowchart LR
+    cliente[Postman] --> gateway[API Gateway]
+    gateway --> orq[Orquestador AWS]
+    orq --> cola[SQS y DLQ]
+    orq --> api[API Pokenetes en EKS]
+    orq --> oci[biblio-express OCI]
+    orq --> azure[Hospitaline Azure]
+    api --> db[Supabase]
+    orq --> grafana[Grafana Cloud]
+    api --> grafana
+```
+
 ---
 
 ## Entornos y ramas
