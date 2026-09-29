@@ -1,10 +1,9 @@
 import Fastify from 'fastify';
-import { randomUUID } from 'crypto';
 import { OrchestratorEnv } from './config/env';
 import { ConfiguredSqsQueue, MemoryQueue } from './queue';
 import { runSaga } from './saga';
 import { getFlujo, listFlujos, saveFlujo } from './store';
-import { observeRequests } from './http';
+import { canonicalTraceId, observeRequests } from './http';
 import { FetchLike, FlujoMessage } from './types';
 
 const ENTITIES = ['pokemon', 'entrenador', 'batalla'] as const;
@@ -34,12 +33,12 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     }
 
     const entity = requested as (typeof ENTITIES)[number];
-
     const incoming = request.headers['x-trace-id'];
-    const traceId =
-      (typeof incoming === 'string' && incoming.trim()) ||
-      request.body?.trace_id ||
-      randomUUID();
+
+    const traceId = canonicalTraceId(
+      typeof incoming === 'string' ? incoming : request.body?.trace_id,
+    );
+    request.headers['x-trace-id'] = traceId;
 
     const message: FlujoMessage = {
       trace_id: traceId,

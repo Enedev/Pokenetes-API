@@ -62,3 +62,12 @@ export function resolveTraceId(headerValue: string | string[] | undefined): stri
 
   return randomUUID();
 }
+
+export function canonicalTraceId(headerValue: string | string[] | undefined): string {
+  const otelTraceId = trace.getActiveSpan()?.spanContext().traceId;
+  if (otelTraceId && !/^0+$/.test(otelTraceId)) {
+    return otelTraceId;
+  }
+
+  return resolveTraceId(headerValue);
+}

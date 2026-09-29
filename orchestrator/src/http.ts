@@ -16,6 +16,19 @@ function instruments() {
   return { duration, requests, errors };
 }
 
+export function canonicalTraceId(headerValue: string | string[] | undefined): string {
+  const otelTraceId = trace.getActiveSpan()?.spanContext().traceId;
+  if (otelTraceId && !/^0+$/.test(otelTraceId)) {
+    return otelTraceId;
+  }
+
+  if (typeof headerValue === 'string' && headerValue.trim()) {
+    return headerValue.trim();
+  }
+
+  return crypto.randomUUID();
+}
+
 export function tracedHeaders(traceId: string): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
