@@ -18,6 +18,8 @@ export function startTelemetry(serviceName: string): void {
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({
       'service.name': serviceName,
+      'service.namespace': 'pokenetes',
+      'cloud.provider': 'aws',
       'k8s.namespace.name': process.env.POD_NAMESPACE ?? 'pokenetes',
       'k8s.pod.name': process.env.POD_NAME ?? 'local',
     }),
