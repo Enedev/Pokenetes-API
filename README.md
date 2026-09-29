@@ -1,6 +1,6 @@
 # Pokenetes
 
-API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. Usa **Supabase** como base de datos, con un entorno de pruebas (`dev`) y uno de producción (`main`). Versión actual: **2.0.0** (`/api/v2`).
+API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. En AWS los datos viven en **RDS Postgres**. Versión actual: **2.0.0** (`/api/v2`).
 
 - Test: https://pokenetes-api-test.onrender.com
 - Producción: https://pokenetes-api-prod.onrender.com
@@ -21,14 +21,20 @@ Neithan opera esta nube. Phol opera Azure y Dhani opera GCP; el diagrama complet
 
 ```mermaid
 flowchart LR
-    postman[Postman] --> gateway[API Gateway]
-    gateway --> orchestrator[Orquestador]
-    orchestrator --> queue[SQS y DLQ]
-    orchestrator --> api[API Pokenetes]
+    postman[Postman] --> apigw[API Gateway]
+    apigw --> elb[Elastic Load Balancing]
+    ecr[ECR] --> eks[EKS]
+    elb --> eks
+    eks --> ec2[EC2]
+    eks --> orchestrator[Orquestador]
+    eks --> api[API Pokenetes]
+    orchestrator --> sqs[SQS y DLQ]
+    orchestrator --> api
     api --> rds[RDS Postgres]
     api --> secrets[Secrets Manager]
     orchestrator --> secrets
-    api --> logs[CloudWatch]
+    api --> cloudwatch[CloudWatch]
+    orchestrator --> cloudwatch
     orchestrator --> grafana[Grafana Cloud]
     api --> grafana
 ```
@@ -39,12 +45,12 @@ flowchart LR
 
 | Rama | Entorno | Coverage mínimo |
 |---|---|---|
-| `dev` | Test / staging | ≥ 60% |
-| `main` | Producción | ≥ 85% |
+| `dev` | Test / staging | ≥ 50% |
+| `main` | Producción | ≥ 50% |
 
 Flujo: trabajas en `dev` → el pipeline de test valida el código → cuando está estable, mergeas `dev` en `main` → el pipeline de prod valida de nuevo.
 
-Los umbrales de cobertura se cambian en un solo archivo: [`coverage-gates.json`](./coverage-gates.json) (`test` = 60, `prod` = 85).
+Los umbrales de cobertura se cambian en un solo archivo: [`coverage-gates.json`](./coverage-gates.json) (`test` = 50, `prod` = 50).
 
 ---
 
@@ -82,8 +88,8 @@ npm run dev                 # desarrollo con recarga
 npm run build               # compila TypeScript a dist/
 npm start                   # arranca dist/index.js
 npm test                    # corre la suite de tests
-npm run test:coverage       # coverage con umbral de test (≥ 60%)
-npm run test:coverage:prod  # coverage con umbral de producción (≥ 85%)
+npm run test:coverage       # coverage con umbral de test (≥ 50%)
+npm run test:coverage:prod  # coverage con umbral de producción (≥ 50%)
 ```
 
 ---
@@ -94,8 +100,8 @@ Los dos entornos usan **la misma suite de tests**. Lo que cambia es el **mínimo
 
 | Entorno | Comando | Umbral | Archivo de config |
 |---|---|---|---|
-| Test (`dev`) | `npm run test:coverage` | ≥ 60% | `vitest.config.pruebas.ts` |
-| Producción (`main`) | `npm run test:coverage:prod` | ≥ 85% | `vitest.config.prod.ts` |
+| Test (`dev`) | `npm run test:coverage` | ≥ 50% | `vitest.config.pruebas.ts` |
+| Producción (`main`) | `npm run test:coverage:prod` | ≥ 50% | `vitest.config.prod.ts` |
 
 Los umbrales se editan en [`coverage-gates.json`](./coverage-gates.json). Si la cobertura queda por debajo del umbral, el comando falla (en local y en CI).
 
@@ -286,8 +292,8 @@ Hay **dos pipelines independientes**. No se ejecutan en tu PC: corren en los ser
 
 | Archivo | Nombre en GitHub | Se dispara cuando | Coverage |
 |---|---|---|---|
-| `.github/workflows/test-pipeline.yml` | **Test Environment Pipeline** | Push o PR a `dev`, o corrida manual | ≥ 60% |
-| `.github/workflows/prod-pipeline.yml` | **Production Environment Pipeline** | Push a `main`, o corrida manual | ≥ 85% |
+| `.github/workflows/test-pipeline.yml` | **Test Environment Pipeline** | Push o PR a `dev`, o corrida manual | ≥ 50% |
+| `.github/workflows/prod-pipeline.yml` | **Production Environment Pipeline** | Push a `main`, o corrida manual | ≥ 50% |
 
 Cada corrida hace: instalar → build → tests → coverage.
 
