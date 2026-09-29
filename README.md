@@ -2,8 +2,8 @@
 
 API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. En AWS los datos viven en **RDS Postgres**. Versión actual: **2.0.0** (`/api/v2`).
 
-- Test: https://pokenetes-api-test.onrender.com
-- Producción: https://pokenetes-api-prod.onrender.com
+- API: http://a9882c6970a5d426d9e2f19b89c56119-333357364.us-east-1.elb.amazonaws.com
+- Orquestador: https://tdedeofhzd.execute-api.us-east-1.amazonaws.com/test
 
 ## Quién opera cada nube
 
@@ -212,7 +212,7 @@ Cada entidad expone todos estos verbos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`,
 | `QUERY` | `/pokemon` `/entrenador` `/batalla` | Consulta RFC 9324 |
 | `QUERY` | `/query` | Consulta genérica (`entity` + `limit`) |
 
-`HEAD` lo genera Fastify a partir de cada `GET`. `QUERY` en Render/Cloudflare puede devolver `405`; en local funciona.
+`HEAD` lo genera Fastify a partir de cada `GET`.
 
 Las mismas rutas de negocio existen bajo `/api/v2` (listar, crear, actualizar, borrar). El GET all de v2 **no** mezcla APIs ajenas. El GET by id de v2 **sí** pide el last de las otras nubes.
 

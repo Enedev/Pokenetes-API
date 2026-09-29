@@ -34,7 +34,7 @@ Si biblio u Hospitaline todavía no tienen URL en Oracle/Azure, esos pasos salen
 | Variable | Default | Notas |
 |---|---|---|
 | `ORCHESTRATOR_PORT` | `3001` | Puerto del orquestador |
-| `POKENETES_API_URL` | `http://127.0.0.1:3000` | Tu API en AWS (hoy local o Render) |
+| `POKENETES_API_URL` | `http://127.0.0.1:3000` | Tu API en AWS (en el clúster: `http://pokenetes-api`) |
 | `BIBLIO_API_URL` | vacía | URL pública OCI cuando Phol la tenga |
 | `HOSPITALINE_API_URL` | vacía | URL pública Azure cuando Dhani la tenga |
 | `AWS_SQS_QUEUE_URL` | vacía | En EKS: `pokenetes-flujo`. Vacío = cola en memoria (local/tests) |

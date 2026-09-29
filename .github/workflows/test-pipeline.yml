@@ -61,14 +61,3 @@ jobs:
           aws eks update-kubeconfig --name pokenetes-test --region us-east-1
           ./kubectl -n pokenetes rollout restart deployment/pokenetes-api
           ./kubectl -n pokenetes rollout status deployment/pokenetes-api --timeout=180s
-
-      - name: Deploy to Render (Test)
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/dev'
-        env:
-          RENDER_HOOK: ${{ secrets.RENDER_TEST_DEPLOY_HOOK }}
-        run: |
-          if [ -z "$RENDER_HOOK" ]; then
-            echo "RENDER_TEST_DEPLOY_HOOK is not set. Skipping Render."
-            exit 0
-          fi
-          curl -fsS -X POST "$RENDER_HOOK"
