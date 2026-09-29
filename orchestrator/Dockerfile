@@ -16,10 +16,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-
 COPY --from=builder /app/dist ./dist
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --cache /tmp/npm-cache
 
 EXPOSE 3001
 
