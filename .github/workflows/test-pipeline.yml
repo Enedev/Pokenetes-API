@@ -42,13 +42,33 @@ jobs:
       - name: Build Docker image
         run: docker build -t pokenetes-api:${{ github.sha }} .
 
+      - name: Deploy API to EKS
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Push API image and restart pods
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 722500516562.dkr.ecr.us-east-1.amazonaws.com
+          docker tag pokenetes-api:${{ github.sha }} 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-api:latest
+          docker push 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-api:latest
+          curl -sLO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          aws eks update-kubeconfig --name pokenetes-test --region us-east-1
+          ./kubectl -n pokenetes rollout restart deployment/pokenetes-api
+          ./kubectl -n pokenetes rollout status deployment/pokenetes-api --timeout=180s
+
       - name: Deploy to Render (Test)
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/dev'
         env:
           RENDER_HOOK: ${{ secrets.RENDER_TEST_DEPLOY_HOOK }}
         run: |
           if [ -z "$RENDER_HOOK" ]; then
-            echo "Missing GitHub secret RENDER_TEST_DEPLOY_HOOK"
-            exit 1
+            echo "RENDER_TEST_DEPLOY_HOOK is not set. Skipping Render."
+            exit 0
           fi
           curl -fsS -X POST "$RENDER_HOOK"

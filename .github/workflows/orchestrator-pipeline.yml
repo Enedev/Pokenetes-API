@@ -41,3 +41,23 @@ jobs:
 
       - name: Build orchestrator image
         run: docker build -t pokenetes-orchestrator:${{ github.sha }} -f orchestrator/Dockerfile orchestrator
+
+      - name: Deploy orchestrator to EKS
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Push orchestrator image and restart pods
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 722500516562.dkr.ecr.us-east-1.amazonaws.com
+          docker tag pokenetes-orchestrator:${{ github.sha }} 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-orchestrator:latest
+          docker push 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-orchestrator:latest
+          curl -sLO "https://dl.k8s.io/release/v1.31.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          aws eks update-kubeconfig --name pokenetes-test --region us-east-1
+          ./kubectl -n pokenetes rollout restart deployment/pokenetes-orchestrator
+          ./kubectl -n pokenetes rollout status deployment/pokenetes-orchestrator --timeout=180s
