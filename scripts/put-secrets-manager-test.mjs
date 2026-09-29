@@ -27,6 +27,9 @@ if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
 if (env.OTEL_EXPORTER_OTLP_HEADERS) {
   payload.OTEL_EXPORTER_OTLP_HEADERS = env.OTEL_EXPORTER_OTLP_HEADERS;
 }
+if (env.OTEL_EXPORTER_OTLP_PROTOCOL) {
+  payload.OTEL_EXPORTER_OTLP_PROTOCOL = env.OTEL_EXPORTER_OTLP_PROTOCOL;
+}
 
 const tmp = path.join(os.tmpdir(), "pokenetes-sm-payload.json");
 fs.writeFileSync(tmp, JSON.stringify(payload));
