@@ -1,6 +1,6 @@
 # Pokenetes Orchestrator
 
-Artefacto aparte de la API. Coordina el flujo multicloud de Seguimiento #2: AWS (Pokenetes) → OCI (biblio-express) → Azure (Hospitaline). Propaga `x-trace-id`.
+Artefacto aparte de la API. Coordina el flujo multicloud de Seguimiento #2: AWS (Pokenetes) → Azure (biblio-express) → GCP (Hospitaline). Propaga `traceparent` y `x-trace-id` con el mismo id que muestra Grafana.
 
 ## Correr en local
 

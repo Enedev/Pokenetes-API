@@ -44,8 +44,8 @@ describe('orchestrator flujo', () => {
     expect(body.status).toBe('completed');
     expect(body.steps[0]).toMatchObject({ name: 'pokenetes', cloud: 'aws', status: 'ok' });
     expect(body.steps[0].data).toEqual({ nombre: 'Pikachu' });
-    expect(body.steps[1]).toMatchObject({ name: 'biblio-express', cloud: 'oci', status: 'skipped' });
-    expect(body.steps[2]).toMatchObject({ name: 'hospitaline', cloud: 'azure', status: 'skipped' });
+    expect(body.steps[1]).toMatchObject({ name: 'biblio-express', cloud: 'azure', status: 'skipped' });
+    expect(body.steps[2]).toMatchObject({ name: 'hospitaline', cloud: 'gcp', status: 'skipped' });
 
     const stored = await app.inject({ method: 'GET', url: `/api/v2/flujo/${body.trace_id}` });
     expect(stored.statusCode).toBe(200);

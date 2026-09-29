@@ -26,14 +26,14 @@ export async function runSaga(
     },
     {
       name: 'biblio-express',
-      cloud: 'oci',
+      cloud: 'azure',
       baseUrl: env.BIBLIO_API_URL,
       lastPath: env.BIBLIO_LAST_PATH,
       listPath: env.BIBLIO_LIST_PATH,
     },
     {
       name: 'hospitaline',
-      cloud: 'azure',
+      cloud: 'gcp',
       baseUrl: env.HOSPITALINE_API_URL,
       lastPath: env.HOSPITALINE_LAST_PATH,
       listPath: env.HOSPITALINE_LIST_PATH,

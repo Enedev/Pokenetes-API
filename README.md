@@ -9,9 +9,9 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 
 | Integrante | Nube | Qué opera |
 |---|---|---|
-| Neithan (Enedev) | AWS | API Pokenetes en EKS, orquestador, SQS + DLQ, API Gateway, Secrets Manager, CloudWatch |
-| Phol (PholCast) | OCI | API biblio-express. Pokenetes consume `books` |
-| Dhani (Dhani-dev) | Azure | API Hospitaline. Pokenetes consume `hospitals` |
+| Neithan (Enedev) | AWS | API Pokenetes en EKS, orquestador, SQS + DLQ, API Gateway, Secrets Manager, RDS Postgres, CloudWatch |
+| Phol (PholCast) | Azure | API biblio-express. Pokenetes consume `books` |
+| Dhani (Dhani-dev) | GCP | API Hospitaline. Pokenetes consume `hospitals` |
 
 El tablero compartido es Grafana Cloud. El diagrama editable está en [`docs/arquitectura-multicloud.drawio`](docs/arquitectura-multicloud.drawio). Se abre en [draw.io](https://app.diagrams.net/) con File → Open.
 
@@ -21,9 +21,9 @@ flowchart LR
     gateway --> orq[Orquestador AWS]
     orq --> cola[SQS y DLQ]
     orq --> api[API Pokenetes en EKS]
-    orq --> oci[biblio-express OCI]
-    orq --> azure[Hospitaline Azure]
-    api --> db[Supabase]
+    orq --> azure[biblio-express Azure]
+    orq --> gcp[Hospitaline GCP]
+    api --> db[RDS Postgres]
     orq --> grafana[Grafana Cloud]
     api --> grafana
 ```
@@ -212,8 +212,8 @@ curl http://localhost:3000/api/v2/pokemon/UUID
 
 APIs compañeras:
 
-- [biblio-express](https://github.com/PholCast/biblio-express) — users, books, loans. Se consume `books` cuando exista la URL en **Oracle**.
-- [Hospitaline](https://github.com/Dhani-dev/Hospitaline) — hospitals, doctors, pacientes. Se consume `hospitals` cuando exista la URL en **Azure**.
+- [biblio-express](https://github.com/PholCast/biblio-express) — users, books, loans. Se consume `books` en **Azure**.
+- [Hospitaline](https://github.com/Dhani-dev/Hospitaline) — hospitals, doctors, pacientes. Se consume `hospitals` en **GCP**.
 
 Hasta que esas URLs existan, deja `BIBLIO_API_URL` y `HOSPITALINE_API_URL` vacías.
 

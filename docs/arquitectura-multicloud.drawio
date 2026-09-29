@@ -40,13 +40,13 @@
         <mxCell id="cw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="CloudWatch&#xa;logs del clúster con trace_id&#xa;Container Insights" vertex="1">
           <mxGeometry height="80" width="220" x="300" y="590" as="geometry" />
         </mxCell>
-        <mxCell id="db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="Postgres de Supabase&#xa;la API lee y escribe con el cliente Supabase&#xa;no hay RDS en esta cuenta AWS" vertex="1">
+        <mxCell id="db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=12;" value="RDS Postgres&#xa;pokenetes-test&#xa;base de la API en AWS" vertex="1">
           <mxGeometry height="70" width="160" x="90" y="630" as="geometry" />
         </mxCell>
         <mxCell id="ocibox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDECEA;strokeColor=#C62828;strokeWidth=2;" value="" vertex="1">
           <mxGeometry height="200" width="500" x="580" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="ocititle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#B71C1C;" value="NUBE OCI · Phol (PholCast)" vertex="1">
+        <mxCell id="ocititle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#B71C1C;" value="NUBE AZURE · Phol (PholCast)" vertex="1">
           <mxGeometry height="30" width="460" x="595" y="310" as="geometry" />
         </mxCell>
         <mxCell id="biblio" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C62828;fontSize=12;align=left;spacingLeft=8;" value="API biblio-express · /api/v2&#xa;Entidad que consume Pokenetes: books&#xa;GET /api/v2/books/last&#xa;Su componente transversal (caché u object storage) lo documenta él" vertex="1">
@@ -55,7 +55,7 @@
         <mxCell id="azbox" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=2;" value="" vertex="1">
           <mxGeometry height="200" width="500" x="1120" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="aztitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#0D47A1;" value="NUBE AZURE · Dhani (Dhani-dev)" vertex="1">
+        <mxCell id="aztitle" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#0D47A1;" value="NUBE GCP · Dhani (Dhani-dev)" vertex="1">
           <mxGeometry height="30" width="460" x="1135" y="310" as="geometry" />
         </mxCell>
         <mxCell id="hosp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1565C0;fontSize=12;align=left;spacingLeft=8;" value="API Hospitaline · /api/v2&#xa;Entidad que consume Pokenetes: hospitals&#xa;GET /api/v2/hospitals/last&#xa;Su componente transversal (caché u object storage) lo documenta él" vertex="1">
