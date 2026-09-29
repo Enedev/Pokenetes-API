@@ -1,9 +1,11 @@
+import { randomUUID } from 'crypto';
+import { trace } from '@opentelemetry/api';
 import Fastify from 'fastify';
 import { OrchestratorEnv } from './config/env';
 import { ConfiguredSqsQueue, MemoryQueue } from './queue';
 import { runSaga } from './saga';
 import { getFlujo, listFlujos, saveFlujo } from './store';
-import { canonicalTraceId, observeRequests } from './http';
+import { observeRequests } from './http';
 import { FetchLike, FlujoMessage } from './types';
 
 const ENTITIES = ['pokemon', 'entrenador', 'batalla'] as const;
@@ -34,14 +36,16 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
 
     const entity = requested as (typeof ENTITIES)[number];
     const incoming = request.headers['x-trace-id'];
-
-    const traceId = canonicalTraceId(
-      typeof incoming === 'string' ? incoming : request.body?.trace_id,
-    );
+    const traceId =
+      (typeof incoming === 'string' && incoming.trim()) ||
+      request.body?.trace_id ||
+      randomUUID();
     request.headers['x-trace-id'] = traceId;
+    const otelTraceId = trace.getActiveSpan()?.spanContext().traceId;
 
     const message: FlujoMessage = {
       trace_id: traceId,
+      otel_trace_id: otelTraceId && !/^0+$/.test(otelTraceId) ? otelTraceId : undefined,
       entity,
       status: 'pending',
       steps: [],
@@ -49,14 +53,14 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
       updated_at: new Date().toISOString(),
     };
 
-    saveFlujo(message);
+    await saveFlujo(message);
     await queue.enqueue(message);
 
-    return reply.status(202).header('x-trace-id', traceId).send(getFlujo(traceId));
+    return reply.status(202).header('x-trace-id', traceId).send(await getFlujo(traceId));
   });
 
   app.get<{ Params: { traceId: string } }>('/api/v2/flujo/:traceId', async (request, reply) => {
-    const found = getFlujo(request.params.traceId);
+    const found = await getFlujo(request.params.traceId);
 
     if (!found) {
       return reply.status(404).send({ error: 'flujo not found' });

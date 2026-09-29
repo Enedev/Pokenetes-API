@@ -11,10 +11,10 @@ export async function runSaga(
   env: OrchestratorEnv,
   fetchImpl: FetchLike,
 ): Promise<FlujoMessage> {
-  const current = getFlujo(message.trace_id) ?? message;
+  const current = (await getFlujo(message.trace_id)) ?? message;
   current.status = 'running';
   current.updated_at = new Date().toISOString();
-  saveFlujo(current);
+  await saveFlujo(current);
 
   const plan = [
     {
@@ -72,7 +72,7 @@ export async function runSaga(
       error: result.error,
     });
     current.updated_at = new Date().toISOString();
-    saveFlujo(current);
+    await saveFlujo(current);
   }
 
   current.status = current.steps.some((step) => step.status === 'failed') ? 'failed' : 'completed';

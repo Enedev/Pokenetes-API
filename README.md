@@ -13,18 +13,23 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 | Phol (PholCast) | Azure | API biblio-express. Pokenetes consume `books` |
 | Dhani (Dhani-dev) | GCP | API Hospitaline. Pokenetes consume `hospitals` |
 
-El tablero compartido es Grafana Cloud. El diagrama editable está en [`docs/arquitectura-multicloud.drawio`](docs/arquitectura-multicloud.drawio). Se abre en [draw.io](https://app.diagrams.net/) con File → Open.
+El tablero compartido es Grafana Cloud.
+
+## Arquitectura en AWS
+
+Neithan opera esta nube. Phol opera Azure y Dhani opera GCP; el diagrama completo de las tres se arma aparte.
 
 ```mermaid
 flowchart LR
-    cliente[Postman] --> gateway[API Gateway]
-    gateway --> orq[Orquestador AWS]
-    orq --> cola[SQS y DLQ]
-    orq --> api[API Pokenetes en EKS]
-    orq --> azure[biblio-express Azure]
-    orq --> gcp[Hospitaline GCP]
-    api --> db[RDS Postgres]
-    orq --> grafana[Grafana Cloud]
+    postman[Postman] --> gateway[API Gateway]
+    gateway --> orchestrator[Orquestador]
+    orchestrator --> queue[SQS y DLQ]
+    orchestrator --> api[API Pokenetes]
+    api --> rds[RDS Postgres]
+    api --> secrets[Secrets Manager]
+    orchestrator --> secrets
+    api --> logs[CloudWatch]
+    orchestrator --> grafana[Grafana Cloud]
     api --> grafana
 ```
 
