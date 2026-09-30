@@ -26,11 +26,13 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
   }));
 
   const startFlujo = async (
-    request: FastifyRequest<{ Body: { entity?: string; trace_id?: string } }>,
+    request: FastifyRequest,
     reply: FastifyReply,
     entry?: FlujoEntry,
   ) => {
-    const requested = request.body?.entity ?? 'pokemon';
+    const body = (request.body ?? {}) as { entity?: string; trace_id?: string };
+    const query = (request.query ?? {}) as { entity?: string };
+    const requested = body.entity ?? query.entity ?? 'pokemon';
 
     if (!ENTITIES.includes(requested as (typeof ENTITIES)[number])) {
       return reply.status(400).send({
@@ -42,7 +44,7 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     const incoming = request.headers['x-trace-id'];
     const traceId =
       (typeof incoming === 'string' && incoming.trim()) ||
-      request.body?.trace_id ||
+      body.trace_id ||
       randomUUID();
     request.headers['x-trace-id'] = traceId;
 
@@ -74,6 +76,9 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
   app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo-aws', async (request, reply) => startFlujo(request, reply, 'aws'));
   app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo-azure', async (request, reply) => startFlujo(request, reply, 'azure'));
   app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo-gcp', async (request, reply) => startFlujo(request, reply, 'gcp'));
+  app.get<{ Querystring: { entity?: string } }>('/api/v2/flujo-aws', async (request, reply) => startFlujo(request, reply, 'aws'));
+  app.get<{ Querystring: { entity?: string } }>('/api/v2/flujo-azure', async (request, reply) => startFlujo(request, reply, 'azure'));
+  app.get<{ Querystring: { entity?: string } }>('/api/v2/flujo-gcp', async (request, reply) => startFlujo(request, reply, 'gcp'));
 
   app.get<{ Params: { traceId: string } }>('/api/v2/flujo/:traceId', async (request, reply) => {
     const found = await getFlujo(request.params.traceId);

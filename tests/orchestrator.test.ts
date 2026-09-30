@@ -109,6 +109,25 @@ describe('orchestrator flujo', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it('starts flujo-aws with GET so the browser link works', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      const target = String(url);
+      if (target.endsWith('/last')) {
+        return { ok: true, status: 200, json: async () => ({ local: { id: 'pokemon-1', nombre: 'Pikachu' } }) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ local: { id: 'pokemon-1' }, peers: {} }),
+      };
+    });
+    const app = await buildOrchestratorApp(env, fetchImpl);
+    const response = await app.inject({ method: 'GET', url: '/api/v2/flujo-aws' });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json().entry).toBe('aws');
+  });
+
   it('rejects an unknown entity', async () => {
     const app = await buildOrchestratorApp(env, vi.fn());
     const response = await app.inject({
