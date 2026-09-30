@@ -173,12 +173,13 @@ export async function fetchStep(options: {
 
   const lastUrl = joinUrl(baseUrl, options.lastPath);
   const listUrl = joinUrl(baseUrl, options.listPath);
+  const call = (url: string) => context.with(options.parentContext ?? context.active(), () => options.fetchImpl(url, {
+    headers: tracedHeaders(options.traceId, options.parentContext),
+    signal: AbortSignal.timeout(5000),
+  }));
 
   try {
-    const response = await options.fetchImpl(lastUrl, {
-      headers: tracedHeaders(options.traceId, options.parentContext),
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await call(lastUrl);
 
     if (response.ok) {
       return { status: 'ok', source: lastUrl, data: pickLast(await response.json()) };
@@ -188,10 +189,7 @@ export async function fetchStep(options: {
   }
 
   try {
-    const response = await options.fetchImpl(listUrl, {
-      headers: tracedHeaders(options.traceId, options.parentContext),
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await call(listUrl);
 
     if (!response.ok) {
       return { status: 'failed', source: listUrl, error: `HTTP ${response.status}` };

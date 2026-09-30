@@ -73,7 +73,8 @@ export function observeRequests(app: FastifyInstance): void {
       },
     }, parent);
     requestSpans.set(request, span);
-    requestContextStore.run(trace.setSpan(parent, span), () => done());
+    const ctx = trace.setSpan(parent, span);
+    requestContextStore.run(ctx, () => context.with(ctx, () => done()));
   });
 
   app.addHook('onResponse', async (request, reply) => {
