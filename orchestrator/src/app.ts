@@ -1,11 +1,11 @@
 import { randomUUID } from 'crypto';
-import { trace } from '@opentelemetry/api';
+import { context, propagation, trace } from '@opentelemetry/api';
 import Fastify from 'fastify';
 import { OrchestratorEnv } from './config/env';
+import { requestContext, observeRequests } from './http';
 import { ConfiguredSqsQueue, MemoryQueue } from './queue';
 import { runSaga } from './saga';
 import { getFlujo, listFlujos, saveFlujo } from './store';
-import { observeRequests } from './http';
 import { FetchLike, FlujoMessage } from './types';
 
 const ENTITIES = ['pokemon', 'entrenador', 'batalla'] as const;
@@ -41,22 +41,28 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
       request.body?.trace_id ||
       randomUUID();
     request.headers['x-trace-id'] = traceId;
-    const otelTraceId = trace.getActiveSpan()?.spanContext().traceId;
 
-    const message: FlujoMessage = {
-      trace_id: traceId,
-      otel_trace_id: otelTraceId && !/^0+$/.test(otelTraceId) ? otelTraceId : undefined,
-      entity,
-      status: 'pending',
-      steps: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const saved = await context.with(requestContext(request), async () => {
+      const carrier: Record<string, string> = {};
+      propagation.inject(context.active(), carrier);
+      const otelTraceId = trace.getActiveSpan()?.spanContext().traceId;
+      const message: FlujoMessage = {
+        trace_id: traceId,
+        otel_trace_id: otelTraceId && !/^0+$/.test(otelTraceId) ? otelTraceId : undefined,
+        traceparent: carrier.traceparent,
+        entity,
+        status: 'pending',
+        steps: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-    await saveFlujo(message);
-    await queue.enqueue(message);
+      await saveFlujo(message);
+      await queue.enqueue(message);
+      return message;
+    });
 
-    return reply.status(202).header('x-trace-id', traceId).send(await getFlujo(traceId));
+    return reply.status(202).header('x-trace-id', traceId).send(await getFlujo(traceId) ?? saved);
   });
 
   app.get<{ Params: { traceId: string } }>('/api/v2/flujo/:traceId', async (request, reply) => {

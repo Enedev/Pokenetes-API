@@ -1,12 +1,13 @@
-import { loadOrchestratorEnv } from './config/env';
-import { hydrateSecretsFromAws } from './config/secrets-manager';
-import { buildOrchestratorApp } from './app';
-import { startSqsWorker } from './queue';
-import { startTelemetry } from './telemetry';
-
 async function main() {
+  const { hydrateSecretsFromAws } = await import('./config/secrets-manager');
   await hydrateSecretsFromAws();
+
+  const { startTelemetry } = await import('./telemetry');
   startTelemetry(process.env.OTEL_SERVICE_NAME ?? 'pokenetes-orchestrator');
+
+  const { loadOrchestratorEnv } = await import('./config/env');
+  const { buildOrchestratorApp } = await import('./app');
+  const { startSqsWorker } = await import('./queue');
   const env = loadOrchestratorEnv();
   const app = await buildOrchestratorApp(env);
   if (env.AWS_SQS_QUEUE_URL) {

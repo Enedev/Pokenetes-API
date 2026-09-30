@@ -4,6 +4,7 @@ import {
   SQSClient,
   SendMessageCommand,
 } from '@aws-sdk/client-sqs';
+import { context, propagation, ROOT_CONTEXT } from '@opentelemetry/api';
 import { OrchestratorEnv } from './config/env';
 import { runSaga } from './saga';
 import { FetchLike, FlujoMessage } from './types';
@@ -77,7 +78,8 @@ export function startSqsWorker(options: {
           }
 
           const payload = JSON.parse(message.Body) as FlujoMessage;
-          await runSaga(payload, options.env, options.fetchImpl);
+          const extracted = propagation.extract(ROOT_CONTEXT, { traceparent: payload.traceparent });
+          await context.with(extracted, () => runSaga(payload, options.env, options.fetchImpl));
           await client.send(
             new DeleteMessageCommand({
               QueueUrl: options.queueUrl,

@@ -22,7 +22,8 @@ describe('GET /api/v2/:entity/last', () => {
     expect(body.local).toEqual(lastPokemon);
     expect(body.peers).toBeUndefined();
     expect(fetchImpl).not.toHaveBeenCalled();
-    expect(body.trace_id).toBeTruthy();
+    expect(body['x-trace_id']).toBeTruthy();
+    expect(body.trace_id).toBeUndefined();
   });
 
   it('does not treat last as an id on GET /api/v2/pokemon/last', async () => {

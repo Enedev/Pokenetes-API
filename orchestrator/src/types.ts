@@ -12,6 +12,7 @@ export interface FlujoStep {
 export interface FlujoMessage {
   trace_id: string;
   otel_trace_id?: string;
+  traceparent?: string;
   entity: 'pokemon' | 'entrenador' | 'batalla';
   status: FlujoStatus;
   steps: FlujoStep[];

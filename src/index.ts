@@ -1,11 +1,12 @@
-import { loadEnv } from './config/env';
-import { hydrateSecretsFromAws } from './config/secrets-manager';
-import { startServer } from './app';
-import { startTelemetry } from './telemetry';
-
 async function main() {
+  const { hydrateSecretsFromAws } = await import('./config/secrets-manager');
   await hydrateSecretsFromAws();
+
+  const { startTelemetry } = await import('./telemetry');
   startTelemetry(process.env.OTEL_SERVICE_NAME ?? 'pokenetes-api');
+
+  const { loadEnv } = await import('./config/env');
+  const { startServer } = await import('./app');
   const env = loadEnv();
   await startServer(env);
 }

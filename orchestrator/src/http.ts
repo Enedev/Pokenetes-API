@@ -1,4 +1,4 @@
-import { context, metrics, propagation, trace, type Counter, type Histogram } from '@opentelemetry/api';
+import { context, metrics, propagation, ROOT_CONTEXT, SpanKind, trace, type Context, type Counter, type Histogram, type Span } from '@opentelemetry/api';
 import type { FastifyInstance } from 'fastify';
 import { FetchLike } from './types';
 
@@ -9,7 +9,7 @@ let errors: Counter | undefined;
 function instruments() {
   if (!duration || !requests || !errors) {
     const meter = metrics.getMeter('pokenetes-orchestrator');
-    duration = meter.createHistogram('http.server.request.duration', { unit: 'ms' });
+    duration = meter.createHistogram('http.server.request.duration', { unit: 's' });
     requests = meter.createCounter('http.server.requests');
     errors = meter.createCounter('http.server.errors');
   }
@@ -38,20 +38,45 @@ export function tracedHeaders(traceId: string): Record<string, string> {
   return headers;
 }
 
+const requestSpans = new WeakMap<object, Span>();
+
+export function requestContext(request: object): Context {
+  const span = requestSpans.get(request);
+  return span ? trace.setSpan(ROOT_CONTEXT, span) : context.active();
+}
+
 export function observeRequests(app: FastifyInstance): void {
+  app.addHook('onRequest', async (request) => {
+    const parent = propagation.extract(ROOT_CONTEXT, request.headers);
+    const route = request.routeOptions?.url ?? request.url;
+    const span = trace.getTracer('pokenetes-orchestrator').startSpan(`${request.method} ${route}`, {
+      kind: SpanKind.SERVER,
+      attributes: {
+        'http.request.method': request.method,
+        'http.route': route,
+        'url.path': request.url,
+      },
+    }, parent);
+    requestSpans.set(request, span);
+  });
+
   app.addHook('onResponse', async (request, reply) => {
     const route = request.routeOptions?.url ?? request.url;
     const status = reply.statusCode;
     const durationMs = reply.elapsedTime;
+    const span = requestSpans.get(request);
+    span?.setAttribute('http.response.status_code', status);
+    span?.end();
+    requestSpans.delete(request);
     const traceIdHeader = request.headers['x-trace-id'];
-    const otelTraceId = trace.getActiveSpan()?.spanContext().traceId;
+    const otelTraceId = span?.spanContext().traceId ?? trace.getActiveSpan()?.spanContext().traceId;
     const attrs = {
-      'http.method': request.method,
+      'http.request.method': request.method,
       'http.route': route,
-      'http.status_code': status,
+      'http.response.status_code': status,
     };
     const series = instruments();
-    series.duration.record(durationMs, attrs);
+    series.duration.record(durationMs / 1000, attrs);
     series.requests.add(1, attrs);
     if (status >= 400) series.errors.add(1, attrs);
 
