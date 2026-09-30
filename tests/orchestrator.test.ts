@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { contextFromTraceparent, tracedHeaders } from '../orchestrator/src/http';
 import { buildOrchestratorApp } from '../orchestrator/src/app';
 import { clearFlujos } from '../orchestrator/src/store';
 import { OrchestratorEnv } from '../orchestrator/src/config/env';
@@ -12,6 +13,16 @@ const env: OrchestratorEnv = {
   HOSPITALINE_LAST_PATH: '/api/v2/hospitals/last',
   HOSPITALINE_LIST_PATH: '/api/v1/hospitals',
 };
+
+describe('orchestrator traceparent', () => {
+  it('keeps the orchestrator trace id on the outbound header', () => {
+    const parent = contextFromTraceparent('00-ee67132e912f5b435675fa5293b262a9-a7dca220defa6895-01');
+    const headers = tracedHeaders('d723b6f2-9e4d-4110-a037-9280d500eb6b', parent);
+
+    expect(headers.traceparent).toBe('00-ee67132e912f5b435675fa5293b262a9-a7dca220defa6895-01');
+    expect(headers['x-trace-id']).toBe('d723b6f2-9e4d-4110-a037-9280d500eb6b');
+  });
+});
 
 describe('orchestrator flujo', () => {
   beforeEach(() => {

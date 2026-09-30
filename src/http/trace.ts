@@ -24,7 +24,13 @@ export function tracedHeaders(traceId: string): Record<string, string> {
     Accept: 'application/json',
     'x-trace-id': traceId,
   };
-  propagation.inject(requestContextStore.getStore() ?? context.active(), headers);
+  const parent = requestContextStore.getStore() ?? context.active();
+  propagation.inject(parent, headers);
+  const spanContext = trace.getSpan(parent)?.spanContext();
+  if (spanContext && !/^0+$/.test(spanContext.traceId)) {
+    const flags = (spanContext.traceFlags ?? 1).toString(16).padStart(2, '0');
+    headers.traceparent = `00-${spanContext.traceId}-${spanContext.spanId}-${flags}`;
+  }
   return headers;
 }
 

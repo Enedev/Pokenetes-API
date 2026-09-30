@@ -29,12 +29,35 @@ export function canonicalTraceId(headerValue: string | string[] | undefined): st
   return crypto.randomUUID();
 }
 
+export function contextFromTraceparent(traceparent?: string): Context {
+  const match = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i.exec(traceparent ?? '');
+  if (!match) return ROOT_CONTEXT;
+
+  return trace.setSpanContext(ROOT_CONTEXT, {
+    traceId: match[1],
+    spanId: match[2],
+    traceFlags: Number.parseInt(match[3], 16),
+    isRemote: true,
+  });
+}
+
+function formatTraceparent(spanContext: { traceId: string; spanId: string; traceFlags: number } | undefined): string | undefined {
+  if (!spanContext || !/^[0-9a-f]{32}$/i.test(spanContext.traceId) || /^0+$/.test(spanContext.traceId)) {
+    return undefined;
+  }
+
+  const flags = (spanContext.traceFlags ?? 1).toString(16).padStart(2, '0');
+  return `00-${spanContext.traceId}-${spanContext.spanId}-${flags}`;
+}
+
 export function tracedHeaders(traceId: string, parent: Context = context.active()): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'x-trace-id': traceId,
   };
   propagation.inject(parent, headers);
+  const traceparent = formatTraceparent(trace.getSpan(parent)?.spanContext());
+  if (traceparent) headers.traceparent = traceparent;
   return headers;
 }
 

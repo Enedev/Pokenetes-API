@@ -1,6 +1,6 @@
-import { propagation, ROOT_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { OrchestratorEnv } from './config/env';
-import { fetchStep } from './http';
+import { contextFromTraceparent, fetchStep } from './http';
 import { getFlujo, saveFlujo } from './store';
 import { FetchLike, FlujoMessage } from './types';
 
@@ -41,7 +41,7 @@ export async function runSaga(
   ];
 
   current.steps = [];
-  const parent = propagation.extract(ROOT_CONTEXT, { traceparent: message.traceparent });
+  const parent = contextFromTraceparent(message.traceparent);
 
   for (const step of plan) {
     const result = await tracer.startActiveSpan(
