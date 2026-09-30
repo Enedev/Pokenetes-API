@@ -52,6 +52,46 @@ describe('fetchPeerLast', () => {
     expect(result.source).toContain('/api/v1/hospitals');
   });
 
+  it('keeps Hospitaline trace ids that sit outside local', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        api: 'hospitaline',
+        version: '2.0.0',
+        'x-trace_id': '0104c82f-e32f-4023-aa54-39a510a42579',
+        'trace-id': 'f5c35f8b78907d610d86b30185e33de1',
+        'span-id': '0dcd8eef3dca74c6',
+        entity: 'hospital',
+        local: {
+          id: 'ff514126-e11a-4b8a-91c8-360d3b4b67bd',
+          name: 'Hospitaline Test',
+        },
+      }),
+    });
+
+    const result = await fetchPeerLast({
+      api: 'hospitaline',
+      entity: 'hospitals',
+      baseUrl: 'http://34.27.58.84',
+      lastPath: '/api/v2/hospitals/last',
+      listPath: '/api/v1/hospitals',
+      traceId: '0104c82f-e32f-4023-aa54-39a510a42579',
+      fetchImpl,
+    });
+
+    expect(result.data).toEqual({
+      id: 'ff514126-e11a-4b8a-91c8-360d3b4b67bd',
+      name: 'Hospitaline Test',
+      api: 'hospitaline',
+      version: '2.0.0',
+      'x-trace_id': '0104c82f-e32f-4023-aa54-39a510a42579',
+      'trace-id': 'f5c35f8b78907d610d86b30185e33de1',
+      'span-id': '0dcd8eef3dca74c6',
+      entity: 'hospital',
+    });
+  });
+
   it('does not invent data when the peer URL is missing', async () => {
     const result = await fetchPeerLast({
       api: 'biblio-express',
