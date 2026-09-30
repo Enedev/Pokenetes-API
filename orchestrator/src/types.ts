@@ -16,7 +16,7 @@ export interface FlujoMessage {
   otel_trace_id?: string;
   traceparent?: string;
   entry?: FlujoEntry;
-  entity: 'pokemon' | 'entrenador' | 'batalla';
+  entity: 'pokemon' | 'entrenador' | 'batalla' | 'book' | 'hospital';
   status: FlujoStatus;
   steps: FlujoStep[];
   created_at: string;

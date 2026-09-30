@@ -126,6 +126,34 @@ describe('orchestrator flujo', () => {
 
     expect(response.statusCode).toBe(202);
     expect(response.json().entry).toBe('aws');
+    expect(response.json().entity).toBe('pokemon');
+  });
+
+  it('names the flujo entity after the cloud that receives it', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      const target = String(url);
+      if (target.includes('/books/last')) {
+        return { ok: true, status: 200, json: async () => ({ id: 10, title: 'It' }) };
+      }
+      if (target.endsWith('/books/10')) {
+        return { ok: true, status: 200, json: async () => ({ book: { id: 10, title: 'It' } }) };
+      }
+      if (target.includes('/hospitals/last')) {
+        return { ok: true, status: 200, json: async () => ({ local: { id: 'h1', name: 'Hospitaline Test' } }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ local: { id: 'h1' }, peers: {} }) };
+    });
+    const app = await buildOrchestratorApp({
+      ...env,
+      BIBLIO_API_URL: 'http://biblio.test',
+      HOSPITALINE_API_URL: 'http://hospitaline.test',
+    }, fetchImpl);
+
+    const azure = await app.inject({ method: 'GET', url: '/api/v2/flujo-azure' });
+    const gcp = await app.inject({ method: 'GET', url: '/api/v2/flujo-gcp' });
+
+    expect(azure.json().entity).toBe('book');
+    expect(gcp.json().entity).toBe('hospital');
   });
 
   it('rejects an unknown entity', async () => {

@@ -34,13 +34,17 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     const query = (request.query ?? {}) as { entity?: string };
     const requested = body.entity ?? query.entity ?? 'pokemon';
 
-    if (!ENTITIES.includes(requested as (typeof ENTITIES)[number])) {
+    if ((!entry || entry === 'aws') && !ENTITIES.includes(requested as (typeof ENTITIES)[number])) {
       return reply.status(400).send({
         error: 'entity must be pokemon, entrenador or batalla',
       });
     }
 
-    const entity = requested as (typeof ENTITIES)[number];
+    const entity = entry === 'azure'
+      ? 'book'
+      : entry === 'gcp'
+        ? 'hospital'
+        : requested as (typeof ENTITIES)[number];
     const incoming = request.headers['x-trace-id'];
     const traceId =
       (typeof incoming === 'string' && incoming.trim()) ||
