@@ -9,10 +9,13 @@ export interface FlujoStep {
   error?: string;
 }
 
+export type FlujoEntry = 'aws' | 'azure' | 'gcp';
+
 export interface FlujoMessage {
   trace_id: string;
   otel_trace_id?: string;
   traceparent?: string;
+  entry?: FlujoEntry;
   entity: 'pokemon' | 'entrenador' | 'batalla';
   status: FlujoStatus;
   steps: FlujoStep[];

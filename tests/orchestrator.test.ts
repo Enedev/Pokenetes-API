@@ -63,6 +63,52 @@ describe('orchestrator flujo', () => {
     expect(stored.json().trace_id).toBe(body.trace_id);
   });
 
+  it('flujo-aws asks Pokenetes getById and keeps the peers that API returns', async () => {
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      const target = String(url);
+      if (target.endsWith('/api/v2/pokemon/last')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ local: { id: 'pokemon-1', nombre: 'Pikachu' } }),
+        };
+      }
+      if (target.endsWith('/api/v2/pokemon/pokemon-1')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            local: { id: 'pokemon-1', nombre: 'Pikachu' },
+            peers: {
+              'biblio-express': { live: true },
+              hospitaline: { live: true },
+            },
+          }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+
+    const app = await buildOrchestratorApp({
+      ...env,
+      BIBLIO_API_URL: 'http://biblio.test',
+      HOSPITALINE_API_URL: 'http://hospitaline.test',
+    }, fetchImpl);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v2/flujo-aws',
+      payload: { entity: 'pokemon' },
+    });
+    const body = created.json();
+
+    expect(created.statusCode).toBe(202);
+    expect(body.entry).toBe('aws');
+    expect(body.steps).toHaveLength(1);
+    expect(body.steps[0].source).toBe('http://pokenetes.test/api/v2/pokemon/pokemon-1');
+    expect(body.steps[0].data.peers.hospitaline.live).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects an unknown entity', async () => {
     const app = await buildOrchestratorApp(env, vi.fn());
     const response = await app.inject({

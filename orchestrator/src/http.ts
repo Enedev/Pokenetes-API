@@ -204,3 +204,41 @@ export async function fetchStep(options: {
     };
   }
 }
+
+export async function fetchDocument(options: {
+  url: string;
+  traceId: string;
+  parentContext?: Context;
+  fetchImpl: FetchLike;
+}): Promise<{ status: 'ok' | 'failed'; data?: unknown; error?: string }> {
+  try {
+    const response = await context.with(options.parentContext ?? context.active(), () => options.fetchImpl(options.url, {
+      headers: tracedHeaders(options.traceId, options.parentContext),
+      signal: AbortSignal.timeout(5000),
+    }));
+
+    if (!response.ok) {
+      return { status: 'failed', error: `HTTP ${response.status}` };
+    }
+
+    return { status: 'ok', data: await response.json() };
+  } catch (error) {
+    return {
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'request failed',
+    };
+  }
+}
+
+export function readRecordId(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const body = data as Record<string, unknown>;
+  if (body.id !== undefined && body.id !== null && String(body.id).trim()) {
+    return String(body.id);
+  }
+  if (body.local && typeof body.local === 'object') {
+    const id = (body.local as Record<string, unknown>).id;
+    if (id !== undefined && id !== null && String(id).trim()) return String(id);
+  }
+  return undefined;
+}

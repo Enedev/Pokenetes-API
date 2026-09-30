@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto';
 import { context, propagation, trace } from '@opentelemetry/api';
-import Fastify from 'fastify';
+import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import { OrchestratorEnv } from './config/env';
 import { requestContext, observeRequests } from './http';
 import { ConfiguredSqsQueue, MemoryQueue } from './queue';
 import { runSaga } from './saga';
 import { getFlujo, listFlujos, saveFlujo } from './store';
-import { FetchLike, FlujoMessage } from './types';
+import { FetchLike, FlujoEntry, FlujoMessage } from './types';
 
 const ENTITIES = ['pokemon', 'entrenador', 'batalla'] as const;
 
@@ -25,7 +25,11 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     queue: env.AWS_SQS_QUEUE_URL ? 'sqs' : 'memory',
   }));
 
-  app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo', async (request, reply) => {
+  const startFlujo = async (
+    request: FastifyRequest<{ Body: { entity?: string; trace_id?: string } }>,
+    reply: FastifyReply,
+    entry?: FlujoEntry,
+  ) => {
     const requested = request.body?.entity ?? 'pokemon';
 
     if (!ENTITIES.includes(requested as (typeof ENTITIES)[number])) {
@@ -50,6 +54,7 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
         trace_id: traceId,
         otel_trace_id: otelTraceId && !/^0+$/.test(otelTraceId) ? otelTraceId : undefined,
         traceparent: carrier.traceparent,
+        entry,
         entity,
         status: 'pending',
         steps: [],
@@ -63,7 +68,12 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
     });
 
     return reply.status(202).header('x-trace-id', traceId).send(await getFlujo(traceId) ?? saved);
-  });
+  };
+
+  app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo', async (request, reply) => startFlujo(request, reply));
+  app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo-aws', async (request, reply) => startFlujo(request, reply, 'aws'));
+  app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo-azure', async (request, reply) => startFlujo(request, reply, 'azure'));
+  app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo-gcp', async (request, reply) => startFlujo(request, reply, 'gcp'));
 
   app.get<{ Params: { traceId: string } }>('/api/v2/flujo/:traceId', async (request, reply) => {
     const found = await getFlujo(request.params.traceId);

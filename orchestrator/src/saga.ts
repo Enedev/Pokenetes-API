@@ -1,6 +1,6 @@
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { OrchestratorEnv } from './config/env';
-import { contextFromTraceparent, fetchStep } from './http';
+import { contextFromTraceparent, fetchDocument, fetchStep, readRecordId } from './http';
 import { getFlujo, saveFlujo } from './store';
 import { FetchLike, FlujoMessage } from './types';
 
@@ -42,21 +42,48 @@ export async function runSaga(
 
   current.steps = [];
   const parent = contextFromTraceparent(message.traceparent);
+  const selected = current.entry ? plan.filter((step) => step.cloud === current.entry) : plan;
 
-  for (const step of plan) {
+  for (const step of selected) {
     const result = await tracer.startActiveSpan(
       `flujo.${step.name}`,
       { attributes: { cloud: step.cloud, peer: step.name, entity: current.entity } },
       parent,
       async (child) => {
+        const spanContext = trace.setSpan(parent, child);
         const stepResult = await fetchStep({
           baseUrl: step.baseUrl,
           lastPath: step.lastPath,
           listPath: step.listPath,
           traceId: current.trace_id,
-          parentContext: trace.setSpan(parent, child),
+          parentContext: spanContext,
           fetchImpl,
         });
+
+        if (current.entry && stepResult.status === 'ok') {
+          const id = readRecordId(stepResult.data);
+          const getPath = step.cloud === 'aws'
+            ? `/api/v2/${current.entity}`
+            : step.cloud === 'azure'
+              ? '/api/v2/books'
+              : '/api/v2/hospitals';
+          if (!id || !step.baseUrl) {
+            stepResult.status = 'failed';
+            stepResult.error = 'getById id was not in the last record';
+          } else {
+            const byIdUrl = `${step.baseUrl.replace(/\/$/, '')}${getPath}/${encodeURIComponent(id)}`;
+            const document = await fetchDocument({
+              url: byIdUrl,
+              traceId: current.trace_id,
+              parentContext: spanContext,
+              fetchImpl,
+            });
+            stepResult.source = byIdUrl;
+            stepResult.status = document.status;
+            stepResult.data = document.data ?? stepResult.data;
+            stepResult.error = document.error;
+          }
+        }
         child.setAttribute('flujo.status', stepResult.status);
         if (stepResult.status === 'failed') {
           child.setStatus({ code: SpanStatusCode.ERROR, message: stepResult.error });
