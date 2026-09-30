@@ -36,6 +36,8 @@ export function startTelemetry(serviceName: string): void {
     instrumentations: [
       getNodeAutoInstrumentations({
         '@opentelemetry/instrumentation-fs': { enabled: false },
+        '@opentelemetry/instrumentation-http': { enabled: false },
+        '@opentelemetry/instrumentation-undici': { enabled: false },
       }),
     ],
   });

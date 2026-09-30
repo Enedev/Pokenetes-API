@@ -173,10 +173,14 @@ export async function fetchStep(options: {
 
   const lastUrl = joinUrl(baseUrl, options.lastPath);
   const listUrl = joinUrl(baseUrl, options.listPath);
-  const call = (url: string) => context.with(options.parentContext ?? context.active(), () => options.fetchImpl(url, {
-    headers: tracedHeaders(options.traceId, options.parentContext),
-    signal: AbortSignal.timeout(5000),
-  }));
+  const call = (url: string) => context.with(options.parentContext ?? context.active(), () => {
+    const headers = tracedHeaders(options.traceId, options.parentContext);
+    console.log(JSON.stringify({ msg: 'outbound', url, traceparent: headers.traceparent ?? '' }));
+    return options.fetchImpl(url, {
+      headers,
+      signal: AbortSignal.timeout(5000),
+    });
+  });
 
   try {
     const response = await call(lastUrl);
