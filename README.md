@@ -15,54 +15,11 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 
 El tablero compartido es Grafana Cloud.
 
-## Arquitectura en AWS
+## Arquitectura
 
-Neithan opera esta nube. Phol opera Azure y Dhani opera GCP; el diagrama completo de las tres se arma aparte.
+Neithan opera AWS. Phol opera Azure y Dhani opera GCP.
 
-```mermaid
-flowchart TD
-    subgraph acceso [Acceso]
-        postman[Postman]
-        apigw[API Gateway]
-        elb[Elastic Load Balancing]
-    end
-    subgraph computo [Computo]
-        ecr[ECR]
-        eks[EKS]
-        ec2[EC2]
-        orchestrator[Orquestador]
-        api[API Pokenetes]
-    end
-    subgraph datos [Datos]
-        sqs[SQS y DLQ]
-        rds[RDS Postgres]
-        secrets[Secrets Manager]
-    end
-    subgraph observabilidad [Observabilidad]
-        otel[OpenTelemetry]
-        cloudwatch[CloudWatch]
-        grafana[Grafana Cloud]
-    end
-
-    postman -->|envia el flujo| apigw
-    apigw -->|HTTPS| elb
-    elb -->|entra al cluster| eks
-    ecr -->|entrega las imagenes| eks
-    eks -->|corre en| ec2
-    eks -->|pod| orchestrator
-    eks -->|pods| api
-    orchestrator -->|llama el last| api
-    orchestrator -->|encola| sqs
-    orchestrator -->|lee secretos| secrets
-    api -->|lee secretos| secrets
-    api -->|guarda datos| rds
-    orchestrator -->|trazas y metricas RED| otel
-    api -->|trazas y metricas RED| otel
-    otel -->|traceparent| grafana
-    orchestrator -->|logs con x-trace-id| cloudwatch
-    api -->|logs con x-trace-id| cloudwatch
-    cloudwatch -->|logs y metricas de la nube| grafana
-```
+![Arquitectura multicloud AWS, GCP y Azure](docs/arquitectura-multicloud.jpg)
 
 ---
 
