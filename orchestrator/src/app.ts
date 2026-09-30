@@ -73,7 +73,18 @@ export async function buildOrchestratorApp(env: OrchestratorEnv, fetchImpl: Fetc
       return message;
     });
 
-    return reply.status(202).header('x-trace-id', traceId).send(await getFlujo(traceId) ?? saved);
+    const finished = entry ? await waitUntilSettled(traceId) : await getFlujo(traceId);
+    return reply.status(entry ? 200 : 202).header('x-trace-id', traceId).send(finished ?? saved);
+  };
+
+  const waitUntilSettled = async (traceId: string) => {
+    const deadline = Date.now() + 20000;
+    let found = await getFlujo(traceId);
+    while (found && (found.status === 'pending' || found.status === 'running') && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      found = await getFlujo(traceId);
+    }
+    return found;
   };
 
   app.post<{ Body: { entity?: string; trace_id?: string } }>('/api/v2/flujo', async (request, reply) => startFlujo(request, reply));

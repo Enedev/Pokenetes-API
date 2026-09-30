@@ -104,7 +104,7 @@ describe('orchestrator flujo', () => {
     });
     const body = created.json();
 
-    expect(created.statusCode).toBe(202);
+    expect(created.statusCode).toBe(200);
     expect(body.entry).toBe('aws');
     expect(body.steps.map((step: { cloud: string }) => step.cloud)).toEqual(['aws', 'azure', 'gcp']);
     expect(body.steps[0].source).toContain('/api/v2/pokemon/last');
@@ -127,9 +127,10 @@ describe('orchestrator flujo', () => {
     const app = await buildOrchestratorApp(env, fetchImpl);
     const response = await app.inject({ method: 'GET', url: '/api/v2/flujo-aws' });
 
-    expect(response.statusCode).toBe(202);
+    expect(response.statusCode).toBe(200);
     expect(response.json().entry).toBe('aws');
     expect(response.json().entity).toBe('pokemon');
+    expect(response.json().steps).toHaveLength(3);
   });
 
   it('names the flujo entity after the cloud that receives it', async () => {
