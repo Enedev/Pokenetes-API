@@ -107,9 +107,9 @@ describe('orchestrator flujo', () => {
     expect(created.statusCode).toBe(200);
     expect(body.entry).toBe('aws');
     expect(body.steps.map((step: { cloud: string }) => step.cloud)).toEqual(['aws', 'azure', 'gcp']);
-    expect(body.steps[0].source).toContain('/api/v2/pokemon/last');
-    expect(body.steps[1].status).toBe('ok');
-    expect(body.steps[2].status).toBe('ok');
+    expect(body.steps.every((step: { source: string }) => step.source.includes('/api/v2/pokemon/pokemon-1'))).toBe(true);
+    expect(body.steps[1].data.live).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it('starts flujo-aws with GET so the browser link works', async () => {
@@ -140,7 +140,15 @@ describe('orchestrator flujo', () => {
         return { ok: true, status: 200, json: async () => ({ id: 10, title: 'It' }) };
       }
       if (target.endsWith('/books/10')) {
-        return { ok: true, status: 200, json: async () => ({ book: { id: 10, title: 'It' } }) };
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            book: { id: 10, title: 'It' },
+            pokemon: { local: { nombre: 'Pikachu' } },
+            doctor: { local: { first_name: 'Carlos' } },
+          }),
+        };
       }
       if (target.includes('/hospitals/last')) {
         return { ok: true, status: 200, json: async () => ({ local: { id: 'h1', name: 'Hospitaline Test' } }) };
