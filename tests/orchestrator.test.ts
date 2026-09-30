@@ -86,6 +86,9 @@ describe('orchestrator flujo', () => {
           }),
         };
       }
+      if (target.includes('/books/last') || target.includes('/hospitals/last')) {
+        return { ok: true, status: 200, json: async () => ({ id: 'peer' }) };
+      }
       return { ok: false, status: 404, json: async () => ({}) };
     });
 
@@ -103,10 +106,10 @@ describe('orchestrator flujo', () => {
 
     expect(created.statusCode).toBe(202);
     expect(body.entry).toBe('aws');
-    expect(body.steps).toHaveLength(1);
-    expect(body.steps[0].source).toBe('http://pokenetes.test/api/v2/pokemon/pokemon-1');
-    expect(body.steps[0].data.peers.hospitaline.live).toBe(true);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(body.steps.map((step: { cloud: string }) => step.cloud)).toEqual(['aws', 'azure', 'gcp']);
+    expect(body.steps[0].source).toContain('/api/v2/pokemon/last');
+    expect(body.steps[1].status).toBe('ok');
+    expect(body.steps[2].status).toBe('ok');
   });
 
   it('starts flujo-aws with GET so the browser link works', async () => {
@@ -153,7 +156,9 @@ describe('orchestrator flujo', () => {
     const gcp = await app.inject({ method: 'GET', url: '/api/v2/flujo-gcp' });
 
     expect(azure.json().entity).toBe('book');
+    expect(azure.json().steps.map((step: { cloud: string }) => step.cloud)).toEqual(['azure', 'aws', 'gcp']);
     expect(gcp.json().entity).toBe('hospital');
+    expect(gcp.json().steps.map((step: { cloud: string }) => step.cloud)).toEqual(['gcp', 'aws', 'azure']);
   });
 
   it('rejects an unknown entity', async () => {
