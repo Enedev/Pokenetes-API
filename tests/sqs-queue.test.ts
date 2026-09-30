@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ConfiguredSqsQueue, MemoryQueue } from '../orchestrator/src/queue';
+import { ConfiguredSqsQueue, isReprocessed, MemoryQueue, readPendingCount } from '../orchestrator/src/queue';
 import { FlujoMessage } from '../orchestrator/src/types';
 
 const message: FlujoMessage = {
@@ -32,5 +32,24 @@ describe('ConfiguredSqsQueue', () => {
 
     expect(worker).not.toHaveBeenCalled();
     expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('queue metrics', () => {
+  it('counts a message as reprocessed only after the first delivery', () => {
+    expect(isReprocessed('1')).toBe(false);
+    expect(isReprocessed(undefined)).toBe(false);
+    expect(isReprocessed('2')).toBe(true);
+  });
+
+  it('reads pending messages from the queue attributes', async () => {
+    const send = vi.fn().mockResolvedValue({
+      Attributes: { ApproximateNumberOfMessages: '4' },
+    });
+
+    await expect(readPendingCount(
+      'https://sqs.us-east-1.amazonaws.com/722500516562/pokenetes-flujo',
+      { send },
+    )).resolves.toBe(4);
   });
 });

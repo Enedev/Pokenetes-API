@@ -44,13 +44,43 @@
     },
     {
       "type": "timeseries",
-      "title": "Latencia p95 (ms)",
+      "title": "Latencia p50 y p95 (s)",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "${prometheus}" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_milliseconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket[5m])))",
           "legendFormat": "p95 {{http_route}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50 {{http_route}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Mensajes pendientes",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "targets": [
+        {
+          "expr": "max(queue_messages_pending)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Mensajes reprocesados",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${prometheus}" },
+      "targets": [
+        {
+          "expr": "sum(rate(queue_messages_reprocessed_total[5m]))",
+          "legendFormat": "reprocesados",
           "refId": "A"
         }
       ]
