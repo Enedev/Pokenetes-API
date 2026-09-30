@@ -29,12 +29,12 @@ export function canonicalTraceId(headerValue: string | string[] | undefined): st
   return crypto.randomUUID();
 }
 
-export function tracedHeaders(traceId: string): Record<string, string> {
+export function tracedHeaders(traceId: string, parent: Context = context.active()): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'x-trace-id': traceId,
   };
-  propagation.inject(context.active(), headers);
+  propagation.inject(parent, headers);
   return headers;
 }
 
@@ -139,6 +139,7 @@ export async function fetchStep(options: {
   lastPath: string;
   listPath: string;
   traceId: string;
+  parentContext?: Context;
   fetchImpl: FetchLike;
 }): Promise<{ status: 'ok' | 'skipped' | 'failed'; source?: string; data?: unknown; error?: string }> {
   const baseUrl = options.baseUrl?.trim();
@@ -152,7 +153,7 @@ export async function fetchStep(options: {
 
   try {
     const response = await options.fetchImpl(lastUrl, {
-      headers: tracedHeaders(options.traceId),
+      headers: tracedHeaders(options.traceId, options.parentContext),
       signal: AbortSignal.timeout(5000),
     });
 
@@ -165,7 +166,7 @@ export async function fetchStep(options: {
 
   try {
     const response = await options.fetchImpl(listUrl, {
-      headers: tracedHeaders(options.traceId),
+      headers: tracedHeaders(options.traceId, options.parentContext),
       signal: AbortSignal.timeout(5000),
     });
 

@@ -1,11 +1,13 @@
 import { randomUUID } from 'crypto';
-import { context, metrics, propagation, ROOT_CONTEXT, SpanKind, trace, type Counter, type Histogram, type Span } from '@opentelemetry/api';
+import { AsyncLocalStorage } from 'async_hooks';
+import { context, metrics, propagation, ROOT_CONTEXT, SpanKind, trace, type Context, type Counter, type Histogram, type Span } from '@opentelemetry/api';
 import type { FastifyInstance } from 'fastify';
 
 let duration: Histogram | undefined;
 let requests: Counter | undefined;
 let errors: Counter | undefined;
 const requestSpans = new WeakMap<object, Span>();
+const requestContextStore = new AsyncLocalStorage<Context>();
 
 function instruments() {
   if (!duration || !requests || !errors) {
@@ -22,7 +24,7 @@ export function tracedHeaders(traceId: string): Record<string, string> {
     Accept: 'application/json',
     'x-trace-id': traceId,
   };
-  propagation.inject(context.active(), headers);
+  propagation.inject(requestContextStore.getStore() ?? context.active(), headers);
   return headers;
 }
 
@@ -53,7 +55,7 @@ export function v2TraceFields(request: { headers: Record<string, unknown> }): {
 }
 
 export function observeRequests(app: FastifyInstance): void {
-  app.addHook('onRequest', async (request) => {
+  app.addHook('onRequest', (request, _reply, done) => {
     const parent = propagation.extract(ROOT_CONTEXT, request.headers);
     const route = request.routeOptions?.url ?? request.url;
     const span = trace.getTracer('pokenetes-api').startSpan(`${request.method} ${route}`, {
@@ -65,6 +67,7 @@ export function observeRequests(app: FastifyInstance): void {
       },
     }, parent);
     requestSpans.set(request, span);
+    requestContextStore.run(trace.setSpan(parent, span), () => done());
   });
 
   app.addHook('onResponse', async (request, reply) => {
