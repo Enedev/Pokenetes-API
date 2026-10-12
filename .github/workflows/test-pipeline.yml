@@ -53,6 +53,14 @@ jobs:
             echo "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY is missing. Skipping EKS deploy."
             exit 0
           fi
+          if ! aws ecr describe-repositories --repository-names pokenetes-api --region us-east-1 >/dev/null 2>&1; then
+            echo "ECR repository pokenetes-api is not present. Skipping image push."
+            exit 0
+          fi
+          if ! aws eks describe-cluster --name pokenetes-test --region us-east-1 >/dev/null 2>&1; then
+            echo "EKS cluster pokenetes-test is not present. Skipping rollout."
+            exit 0
+          fi
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 722500516562.dkr.ecr.us-east-1.amazonaws.com
           docker tag pokenetes-api:${{ github.sha }} 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-api:latest
           docker push 722500516562.dkr.ecr.us-east-1.amazonaws.com/pokenetes-api:latest
