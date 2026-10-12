@@ -1,0 +1,90 @@
+name: Terraform Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: apply crea la infraestructura e instala la API. destroy la elimina.
+        required: true
+        type: choice
+        options:
+          - apply
+          - destroy
+
+jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      TF_IN_AUTOMATION: "true"
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Require AWS credentials
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY is missing."
+            exit 1
+          fi
+
+      - name: Create the state bucket when it does not exist
+        working-directory: .
+        run: |
+          if ! aws s3api head-bucket --bucket pokenetes-terraform-state-722500516562 2>/dev/null; then
+            aws s3 mb s3://pokenetes-terraform-state-722500516562 --region us-east-1
+          fi
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Apply infrastructure
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false -auto-approve
+
+      - name: Build and install the API
+        if: inputs.action == 'apply'
+        working-directory: .
+        run: |
+          set -eu
+          REPO="$(terraform -chdir=terraform output -raw ecr_repository_url)"
+          INSTANCE_ID="$(terraform -chdir=terraform output -raw instance_id)"
+          SECRET_NAME="$(terraform -chdir=terraform output -raw secret_name)"
+          ACCOUNT="${REPO%%.*}"
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "$ACCOUNT.dkr.ecr.us-east-1.amazonaws.com"
+          docker build -t "$REPO:latest" .
+          docker push "$REPO:latest"
+          for _ in $(seq 1 30); do
+            STATUS="$(aws ssm describe-instance-information --filters Key=InstanceIds,Values="$INSTANCE_ID" --query "InstanceInformationList[0].PingStatus" --output text)"
+            if [ "$STATUS" = "Online" ]; then
+              break
+            fi
+            sleep 10
+          done
+          COMMAND_ID="$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Install Pokenetes API" \
+            --query Command.CommandId \
+            --output text \
+            --parameters commands="[
+              \"set -eux\",
+              \"aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com\",
+              \"docker pull $REPO:latest\",
+              \"docker rm -f pokenetes-api || true\",
+              \"docker run -d --name pokenetes-api --restart unless-stopped -p 80:3000 -e AWS_REGION=us-east-1 -e AWS_SECRETS_MANAGER_SECRET_ID=$SECRET_NAME -e NODE_ENV=test $REPO:latest\"
+            ]")"
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID"
+          echo "API URL: http://$(terraform -chdir=terraform output -raw api_url | sed 's#http://##')"
+
+      - name: Destroy infrastructure
+        if: inputs.action == 'destroy'
+        run: terraform destroy -input=false -auto-approve
