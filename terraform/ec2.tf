@@ -4,7 +4,7 @@ data "aws_ami" "amazon_linux" {
 
   filter {
     name   = "name"
-    values = ["al2023-ami-*-x86_64"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 
   filter {
@@ -12,6 +12,8 @@ data "aws_ami" "amazon_linux" {
     values = ["hvm"]
   }
 }
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "api" {
   name = "${var.project}-api-instance"
@@ -67,6 +69,11 @@ resource "aws_instance" "api" {
     set -eux
     dnf install -y docker
     systemctl enable --now docker
+    systemctl enable --now amazon-ssm-agent || true
+    aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com
+    docker pull ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.project}-api:latest
+    docker rm -f ${var.project}-api || true
+    docker run -d --name ${var.project}-api --restart unless-stopped -p 80:3000 -e AWS_REGION=${var.aws_region} -e AWS_SECRETS_MANAGER_SECRET_ID=${aws_secretsmanager_secret.app.name} -e NODE_ENV=test ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.project}-api:latest
   EOF
 
   tags = {
