@@ -28,7 +28,7 @@ terraform init
 terraform apply
 ```
 
-`terraform apply` pide confirmación. Crea la red, la instancia, RDS, SQS, ECR y el secreto. La API todavía no está instalada: eso lo hace el pipeline.
+`terraform apply` pide confirmación. Crea la red, la instancia, RDS, SQS, ECR y el secreto. Al arrancar, la instancia instala Docker, baja la imagen `pokenetes-api` desde ECR y publica la API en el puerto 80. La URL queda en `terraform output api_url`.
 
 ## Instalar la API
 
