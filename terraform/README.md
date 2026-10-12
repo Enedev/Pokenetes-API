@@ -1,0 +1,57 @@
+# Despliegue con Terraform
+
+Estos archivos crean la infraestructura de AWS para la API Pokenetes y dejan una instancia donde el pipeline instala el contenedor. Cada servicio está en su propio archivo:
+
+| Archivo | Servicio |
+|---|---|
+| `vpc.tf` | VPC, subredes e internet gateway |
+| `security.tf` | Security groups de la API y de Postgres |
+| `ec2.tf` | Instancia de la API, rol e IAM |
+| `rds.tf` | Base de datos PostgreSQL |
+| `sqs.tf` | Cola del flujo y su DLQ |
+| `ecr.tf` | Repositorio de la imagen |
+| `secrets.tf` | Secreto con la URL de la base y la cola |
+| `providers.tf` | Proveedor AWS y el estado remoto en S3 |
+| `variables.tf` | Región y nombre del proyecto |
+| `outputs.tf` | URL pública, instancia y repositorio |
+
+No hay un único `main.tf`. El estado queda en el bucket `pokenetes-terraform-state-722500516562`, no en git.
+
+## Crear la infraestructura
+
+Hace falta Terraform 1.5 o superior y credenciales de AWS en la cuenta `722500516562`.
+
+```bash
+aws s3 mb s3://pokenetes-terraform-state-722500516562 --region us-east-1
+cd terraform
+terraform init
+terraform apply
+```
+
+`terraform apply` pide confirmación. Crea la red, la instancia, RDS, SQS, ECR y el secreto. La API todavía no está instalada: eso lo hace el pipeline.
+
+## Instalar la API
+
+En GitHub: Actions → **Terraform Infrastructure** → **Run workflow** → action `apply`.
+
+Ese workflow ejecuta `terraform apply` y después construye la imagen, la sube a ECR y la arranca en la instancia con Docker, en el puerto 80. La URL queda en el output `api_url`.
+
+También se puede instalar a mano, después del apply, con el id de `terraform output instance_id` y la imagen publicada en ECR. El contenedor lee el secreto `pokenetes/terraform` al arrancar.
+
+## Eliminar la infraestructura
+
+Después de la sustentación hay que apagar el costo. Desde esta carpeta:
+
+```bash
+terraform destroy
+```
+
+O en GitHub Actions, el mismo workflow con action `destroy`.
+
+`destroy` borra la instancia, la base, las colas, el repositorio de imágenes y el secreto. El bucket del estado no se borra solo. Cuando el destroy termine y ya no haga falta repetirlo:
+
+```bash
+aws s3 rb s3://pokenetes-terraform-state-722500516562 --force
+```
+
+RDS se crea con `skip_final_snapshot`, así que destroy no deja un snapshot cobrando.
