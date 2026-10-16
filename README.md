@@ -5,6 +5,8 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 - API: http://a9882c6970a5d426d9e2f19b89c56119-333357364.us-east-1.elb.amazonaws.com
 - Orquestador: https://tdedeofhzd.execute-api.us-east-1.amazonaws.com/test
 
+El despliegue de la entrega con Terraform está en [`terraform/README.md`](terraform/README.md). La URL pública de esa API sale de `terraform output api_url`.
+
 ## Quién opera cada nube
 
 | Integrante | Nube | Qué opera |
@@ -270,12 +272,13 @@ Si configuras `DATABASE_URL`, la app aplica el DDL sola al iniciar.
 
 ## GitHub Actions (CI/CD)
 
-Hay **dos pipelines independientes**. No se ejecutan en tu PC: corren en los servidores de GitHub.
+Hay **tres pipelines**. No se ejecutan en tu PC: corren en los servidores de GitHub.
 
 | Archivo | Nombre en GitHub | Se dispara cuando | Coverage |
 |---|---|---|---|
 | `.github/workflows/test-pipeline.yml` | **Test Environment Pipeline** | Push o PR a `dev`, o corrida manual | ≥ 50% |
 | `.github/workflows/prod-pipeline.yml` | **Production Environment Pipeline** | Push a `main`, o corrida manual | ≥ 50% |
+| `.github/workflows/terraform-pipeline.yml` | **Terraform Infrastructure** | Solo manual. `apply` crea la nube e instala la API. `destroy` la borra. | no aplica |
 
 Cada corrida hace: instalar → build → tests → coverage.
 
@@ -291,7 +294,7 @@ No tienes que pulsar nada: GitHub detecta el push y lanza el workflow.
 
 1. Entra al repo: https://github.com/Enedev/Pokenetes-API
 2. Pestaña **Actions**.
-3. A la izquierda ves los dos workflows.
+3. A la izquierda ves los tres workflows.
 4. Al centro, el historial (verde = OK, rojo = falló, amarillo = en curso).
 5. Entra a una corrida para ver cada paso.
 
@@ -305,6 +308,7 @@ Sirve para revalidar **sin un commit nuevo**.
 2. Elige el workflow:
    - `Test Environment Pipeline` (test)
    - `Production Environment Pipeline` (prod)
+   - `Terraform Infrastructure` (`apply` o `destroy`)
 3. Arriba a la derecha: **Run workflow**.
 4. Rama: `dev` para test, `main` para prod.
 5. Pulsa **Run workflow**.
@@ -344,5 +348,6 @@ docker/init.sql         Tablas para Postgres local
 Dockerfile              Imagen de la API
 docker-compose.yml      API + Postgres
 coverage-gates.json     Umbrales 60 (test) / 85 (prod)
-.github/workflows/      CI/CD
+.github/workflows/      CI/CD, incluido Terraform Infrastructure
+terraform/              Un archivo por servicio de AWS y el README de despliegue
 ```
