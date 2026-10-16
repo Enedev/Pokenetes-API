@@ -7,6 +7,8 @@ API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenad
 
 El despliegue de la entrega con Terraform está en [`terraform/README.md`](terraform/README.md). La URL pública de esa API sale de `terraform output api_url`.
 
+![Seguimiento 3. Terraform crea la API en AWS](docs/seguimiento3-terraform.jpg)
+
 ## Quién opera cada nube
 
 | Integrante | Nube | Qué opera |
