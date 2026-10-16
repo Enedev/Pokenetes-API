@@ -1,5 +1,7 @@
 # Despliegue con Terraform
 
+![Seguimiento 3. Terraform crea la API en AWS](../docs/seguimiento3-terraform.jpg)
+
 Estos archivos crean la infraestructura de AWS para la API Pokenetes y dejan una instancia donde el pipeline instala el contenedor. Cada servicio está en su propio archivo:
 
 | Archivo | Servicio |
