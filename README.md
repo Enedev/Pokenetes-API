@@ -66,6 +66,48 @@ flowchart LR
 
 Cada respuesta dice qué la atendió con las cabeceras `X-App-Version` (`2.2.0` o `3.0.0`), `X-App-Track` (`stable` o `canary`) y `X-Api-Version` (`v1`, `v2` o `v3`). `/health` devuelve además `app_version` y `track` en el cuerpo.
 
+### Etapas y bake times
+
+Definidas en [`canary/stages.json`](canary/stages.json). En cada etapa el script mueve el peso, mete carga concurrente durante todo el bake time y al final decide si promover, pausar o abortar.
+
+| Etapa | Tráfico público al canary | Bake time | Cómo entra el tráfico al canary | Pasa a la siguiente si |
+|---|---|---|---|---|
+| Stage 0 | 0% | 90 s | Solo con `x-canary: true`. La carga manda la cabecera en la mitad de las peticiones para tener baseline y canary del mismo tamaño | SLO en verde y al menos 300 muestras del canary |
+| Stage 1 | 10% | 180 s | Peso 90/10 en el listener | Igual, más ninguna alarma en `ALARM` |
+| Stage 2 | 50% | 180 s | Peso 50/50 | Igual |
+| Stage 3 | 100% | 120 s | Peso 0/100. Versión promovida | Igual. Al terminar, 3.0.0 atiende todo |
+
+La mezcla de carga es la misma para los dos tracks: `GET /api/pokemon/last`, `GET /api/entrenador/last`, `GET /api/batalla/last`, `GET /api/pokemon` y `POST /api/pokemon` con `apodo`. Así se comparan peticiones equivalentes, en la misma ventana de tiempo y en instancias del mismo tipo (`t3.micro`).
+
+### SLO y quality gate
+
+Los umbrales están en [`canary/slo.json`](canary/slo.json). Las alarmas de Terraform y el script de rollout leen ese mismo archivo, así que cambiar un umbral es un commit.
+
+| SLI | Promover si ≤ | Pausar si ≤ | Abortar si > |
+|---|---|---|---|
+| Tasa de 5xx del canary | 1% | 2% | 5% |
+| Latencia p95 | 500 ms | 800 ms | 1000 ms |
+| Latencia p99 | 1000 ms | 1500 ms | 2000 ms |
+| p95 canary / p95 baseline | 1.25 | 1.5 | 2 |
+
+- **Pausar** repite el bake time a la mitad. Si sigue en pausa, el canary se queda en el peso actual y el job termina con código 2 para que alguien decida.
+- **Abortar** pone el peso del canary en 0, apaga la falla inyectada y deja el reporte en `canary/reports/` (artefacto del job).
+- **Comparación contra el baseline**: una prueba z de dos proporciones sobre la tasa de 5xx de canary contra stable en la misma ventana. Si la diferencia es significativa (α = 0.05) y el canary pasa el 1%, se aborta aunque no haya llegado al 5%.
+- **Tamaño de muestra**: para distinguir 1% de 5% de errores con α = 0.05 y potencia 0.8 hacen falta unas 284 peticiones por track. El gate pide 300 (`min_samples_per_track`); con menos, la decisión es pausar, nunca promover.
+- **Fuera del script**, CloudWatch evalúa cada minuto tres alarmas sobre el target group del canary: 5xx por encima de 5% con al menos 20 peticiones, p95 por encima de 1 s durante 2 minutos, y el target unhealthy. Cualquiera en `ALARM` dispara la Lambda de rollback, aunque nadie esté corriendo el script.
+
+### Métricas por track
+
+| Señal | Métrica | Fuente |
+|---|---|---|
+| Tráfico | `RequestCount`, `Requests` | ALB por target group, EMF por `Track` |
+| Errores | `HTTPCode_Target_5XX_Count`, `HTTPCode_Target_4XX_Count`, `Errors5xx`, `Errors4xx` | ALB, EMF |
+| Latencia | `TargetResponseTime` p50 / p95 / p99, `Latency` | ALB, EMF |
+| Saturación | `CPUUtilization` de la instancia, `ProcessCpu`, `MemoryRss`, `HeapUsed` | EC2, EMF cada 30 s |
+| Negocio | `PokemonCreated` (POST de pokemon con 201) | EMF |
+
+La app escribe las métricas EMF como líneas JSON en stdout (`METRICS_EMF=true`). El driver `awslogs` de Docker las manda a `/pokenetes/canary`, y CloudWatch las convierte en métricas del namespace `Pokenetes/Canary` con la dimensión `Track`. El dashboard `pokenetes-canary` (`terraform output dashboard_url`) pone cada señal con stable en azul y canary en naranja, junto a las alarmas.
+
 ---
 
 ## Entornos y ramas
