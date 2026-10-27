@@ -3,6 +3,8 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
 import { registerRestResource } from './rest';
 import { FetchLike } from '../integrations/peer-client';
+import { POKEMON_V2_COLUMNS } from '../db/schemas/pokemon';
+import { pickColumns } from './shape';
 
 export async function pokemonRoutes(
   app: FastifyInstance,
@@ -15,6 +17,7 @@ export async function pokemonRoutes(
     path,
     table: 'pokemon',
     fetchImpl,
+    shape: pickColumns(POKEMON_V2_COLUMNS),
     parsePost: (body) => {
       const nombre = body.nombre;
       const tipo = body.tipo;
