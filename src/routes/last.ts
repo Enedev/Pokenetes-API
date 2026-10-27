@@ -12,11 +12,12 @@ export async function lastRoutes(
   app: FastifyInstance,
   env: AppEnv,
   supabaseClient?: SupabaseClient,
+  prefix = API_V2_PREFIX,
 ): Promise<void> {
   const db = () => supabaseClient ?? getSupabaseClient(env);
 
   for (const entity of LOCAL_ENTITIES) {
-    app.get(`${API_V2_PREFIX}/${entity}/last`, async (request, reply) => {
+    app.get(`${prefix}/${entity}/last`, async (request, reply) => {
       const local = await fetchLastLocalRecord(db(), entity);
       const trace = v2TraceFields(request);
 
