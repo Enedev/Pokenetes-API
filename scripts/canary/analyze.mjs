@@ -51,11 +51,23 @@ export function toTrackSummary(results, track) {
   };
 }
 
+// Whole minutes inside the bake only, so traffic from the previous weight never leaks in.
+export function alignWindow(startMs, endMs) {
+  let start = Math.ceil(startMs / 60_000) * 60_000;
+  const end = Math.floor(endMs / 60_000) * 60_000;
+  if (end <= start) start = end - 60_000;
+  return { start: new Date(start), end: new Date(end), period: (end - start) / 1000 };
+}
+
 export function analyzeCloudWatch(minutes = 5) {
+  const now = Date.now();
+  return analyzeWindow(now - minutes * 60_000, now);
+}
+
+export function analyzeWindow(startMs, endMs) {
   const { lbDimension, tgDimensions } = outputs();
-  const end = new Date();
-  const start = new Date(end.getTime() - minutes * 60_000);
-  const period = minutes * 60;
+  const { start, end, period } = alignWindow(startMs, endMs);
+  const minutes = period / 60;
   const file = join(tmpdir(), `canary-queries-${process.pid}.json`);
   writeFileSync(file, JSON.stringify(metricQueries(lbDimension, tgDimensions, period)));
 
@@ -72,7 +84,13 @@ export function analyzeCloudWatch(minutes = 5) {
 
   const stable = toTrackSummary(MetricDataResults, 'stable');
   const canary = toTrackSummary(MetricDataResults, 'canary');
-  return { source: 'cloudwatch', minutes, stable, canary, verdict: decide(loadSlo(), canary, stable) };
+  return {
+    source: 'cloudwatch',
+    window: { start: start.toISOString(), end: end.toISOString(), minutes },
+    stable,
+    canary,
+    verdict: decide(loadSlo(), canary, stable),
+  };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
