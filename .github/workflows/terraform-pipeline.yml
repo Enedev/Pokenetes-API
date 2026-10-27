@@ -4,12 +4,24 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: apply crea la infraestructura e instala la API. destroy la elimina.
+        description: apply construye las imagenes por tag, las fija por digest y crea la infraestructura. destroy la elimina.
         required: true
         type: choice
         options:
           - apply
           - destroy
+      stable_ref:
+        description: Tag de la version estable (baseline).
+        required: true
+        default: "2.2.0"
+      canary_ref:
+        description: Tag de la version canary.
+        required: true
+        default: "3.0.0"
+
+concurrency:
+  group: pokenetes-infrastructure
+  cancel-in-progress: false
 
 jobs:
   infrastructure:
@@ -19,15 +31,20 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1
       TF_IN_AUTOMATION: "true"
+      TF_VAR_fault_token: ${{ secrets.CANARY_FAULT_TOKEN }}
     defaults:
       run:
         working-directory: terraform
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
       - name: Require AWS credentials
         run: |
@@ -46,45 +63,55 @@ jobs:
       - name: Init
         run: terraform init -input=false
 
-      - name: Apply infrastructure
+      - name: Create the registry
         if: inputs.action == 'apply'
-        run: terraform apply -input=false -auto-approve
+        run: terraform apply -input=false -auto-approve -target=aws_ecr_repository.api
 
-      - name: Build and install the API
+      - name: Build and push both tracks by tag
         if: inputs.action == 'apply'
         working-directory: .
         run: |
           set -eu
           REPO="$(terraform -chdir=terraform output -raw ecr_repository_url)"
-          INSTANCE_ID="$(terraform -chdir=terraform output -raw instance_id)"
-          SECRET_NAME="$(terraform -chdir=terraform output -raw secret_name)"
-          ACCOUNT="${REPO%%.*}"
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "$ACCOUNT.dkr.ecr.us-east-1.amazonaws.com"
-          docker build -t "$REPO:latest" .
-          docker push "$REPO:latest"
-          for _ in $(seq 1 30); do
-            STATUS="$(aws ssm describe-instance-information --filters Key=InstanceIds,Values="$INSTANCE_ID" --query "InstanceInformationList[0].PingStatus" --output text)"
-            if [ "$STATUS" = "Online" ]; then
-              break
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${REPO%%/*}"
+          for TRACK in stable canary; do
+            if [ "$TRACK" = stable ]; then REF="${{ inputs.stable_ref }}"; else REF="${{ inputs.canary_ref }}"; fi
+            git rev-parse --verify "refs/tags/$REF" >/dev/null
+            if ! aws ecr describe-images --repository-name pokenetes-api --image-ids imageTag="$REF" >/dev/null 2>&1; then
+              rm -rf "/tmp/build-$TRACK"
+              git worktree add "/tmp/build-$TRACK" "$REF"
+              docker build -t "$REPO:$REF" "/tmp/build-$TRACK"
+              docker push "$REPO:$REF"
             fi
-            sleep 10
+            DIGEST="$(aws ecr describe-images --repository-name pokenetes-api --image-ids imageTag="$REF" --query 'imageDetails[0].imageDigest' --output text)"
+            echo "TF_VAR_${TRACK}_image=$REPO@$DIGEST" >> "$GITHUB_ENV"
+            echo "$TRACK: $REF -> $REPO@$DIGEST" | tee -a "$GITHUB_STEP_SUMMARY"
           done
-          COMMAND_ID="$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
-            --comment "Install Pokenetes API" \
-            --query Command.CommandId \
-            --output text \
-            --parameters commands="[
-              \"set -eux\",
-              \"aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com\",
-              \"docker pull $REPO:latest\",
-              \"docker rm -f pokenetes-api || true\",
-              \"docker run -d --name pokenetes-api --restart unless-stopped -p 80:3000 -e AWS_REGION=us-east-1 -e AWS_SECRETS_MANAGER_SECRET_ID=$SECRET_NAME -e NODE_ENV=test $REPO:latest\"
-            ]")"
-          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID"
-          echo "API URL: http://$(terraform -chdir=terraform output -raw api_url | sed 's#http://##')"
+
+      - name: Apply infrastructure with the digests
+        if: inputs.action == 'apply'
+        run: terraform apply -input=false -auto-approve
+
+      - name: Wait for both targets to be healthy
+        if: inputs.action == 'apply'
+        working-directory: .
+        run: |
+          set -eu
+          for TRACK in stable canary; do
+            TG="$(terraform -chdir=terraform output -json target_group_arns | jq -r ".$TRACK")"
+            aws elbv2 wait target-in-service --target-group-arn "$TG"
+          done
+          URL="$(terraform -chdir=terraform output -raw api_url)"
+          curl -fsS -D - "$URL/health" -o /dev/null | grep -i '^x-app-'
+          curl -fsS -D - -H 'x-canary: true' "$URL/health" -o /dev/null | grep -i '^x-app-'
+          echo "API URL: $URL" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Dashboard: $(terraform -chdir=terraform output -raw dashboard_url)" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Destroy infrastructure
         if: inputs.action == 'destroy'
-        run: terraform destroy -input=false -auto-approve
+        run: |
+          set -eu
+          IMAGES="$(terraform output -json images 2>/dev/null || echo '{}')"
+          export TF_VAR_stable_image="$(echo "$IMAGES" | jq -r '.stable // ""')"
+          export TF_VAR_canary_image="$(echo "$IMAGES" | jq -r '.canary // ""')"
+          terraform destroy -input=false -auto-approve
