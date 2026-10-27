@@ -1,0 +1,25 @@
+{
+  "service": "pokenetes-api",
+  "window_seconds": 60,
+  "min_requests_per_window": 20,
+  "sli": {
+    "error_rate_pct": "100 * HTTPCode_Target_5XX_Count / RequestCount del target group",
+    "latency_p95_ms": "TargetResponseTime p95 del target group",
+    "latency_p99_ms": "TargetResponseTime p99 del target group",
+    "pokemon_created": "Pokenetes/Canary PokemonCreated por Track"
+  },
+  "thresholds": {
+    "error_rate_pct": { "promote_max": 1, "pause_max": 2, "abort_above": 5 },
+    "latency_p95_ms": { "promote_max": 500, "pause_max": 800, "abort_above": 1000 },
+    "latency_p99_ms": { "promote_max": 1000, "pause_max": 1500, "abort_above": 2000 },
+    "p95_vs_baseline_ratio": { "promote_max": 1.25, "pause_max": 1.5, "abort_above": 2 }
+  },
+  "comparison": {
+    "test": "two-proportion z-test sobre la tasa de 5xx, canary contra baseline en la misma ventana",
+    "alpha": 0.05,
+    "power": 0.8,
+    "baseline_error_rate": 0.01,
+    "detectable_error_rate": 0.05,
+    "min_samples_per_track": 300
+  }
+}
