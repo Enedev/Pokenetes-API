@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
-import { API_VERSION, API_V2_PREFIX } from '../config/version';
+import { API_VERSION } from '../config/version';
 import { getSupabaseClient } from '../db/client';
 import { v2TraceFields } from '../http/trace';
 import { FetchLike, fetchConfiguredPeers } from '../integrations/peer-client';
@@ -51,7 +51,7 @@ export async function registerRestResource(
       return reply.status(404).send(notFound);
     }
 
-    if (!config.path.startsWith(API_V2_PREFIX)) {
+    if (!config.path.startsWith('/api/')) {
       return reply.status(200).send(data);
     }
 
