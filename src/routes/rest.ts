@@ -5,6 +5,7 @@ import { API_VERSION } from '../config/version';
 import { getSupabaseClient } from '../db/client';
 import { v2TraceFields } from '../http/trace';
 import { FetchLike, fetchConfiguredPeers } from '../integrations/peer-client';
+import { applyShape, Shape } from './shape';
 
 type Json = Record<string, unknown>;
 
@@ -19,6 +20,7 @@ export interface RestResourceConfig {
   parsePut: (body: Json) => ParseResult;
   parsePatch: (body: Json) => ParseResult;
   fetchImpl?: FetchLike;
+  shape?: Shape;
 }
 
 export async function registerRestResource(
@@ -29,6 +31,7 @@ export async function registerRestResource(
 ): Promise<void> {
   const db = () => supabaseClient ?? getSupabaseClient(env);
   const notFound = { error: `${config.table} not found` };
+  const shaped = (data: unknown) => applyShape(data, config.shape);
 
   app.get(config.path, async (_request, reply) => {
     const { data, error } = await db().from(config.table).select('*');
@@ -37,7 +40,7 @@ export async function registerRestResource(
       return reply.status(500).send({ error: error.message });
     }
 
-    return reply.status(200).send(data);
+    return reply.status(200).send(shaped(data));
   });
 
   app.get<{ Params: { id: string } }>(`${config.path}/:id`, async (request, reply) => {
@@ -52,7 +55,7 @@ export async function registerRestResource(
     }
 
     if (!config.path.startsWith('/api/')) {
-      return reply.status(200).send(data);
+      return reply.status(200).send(shaped(data));
     }
 
     const trace = v2TraceFields(request);
@@ -63,7 +66,7 @@ export async function registerRestResource(
       version: API_VERSION,
       ...trace,
       entity: config.table,
-      local: data,
+      local: shaped(data),
       peers,
     });
   });
@@ -85,7 +88,7 @@ export async function registerRestResource(
       return reply.status(500).send({ error: error.message });
     }
 
-    return reply.status(201).send(data);
+    return reply.status(201).send(shaped(data));
   });
 
   app.put<{ Params: { id: string }; Body: Json }>(`${config.path}/:id`, async (request, reply) => {
@@ -106,7 +109,7 @@ export async function registerRestResource(
       return reply.status(404).send(notFound);
     }
 
-    return reply.status(200).send(data);
+    return reply.status(200).send(shaped(data));
   });
 
   app.patch<{ Params: { id: string }; Body: Json }>(`${config.path}/:id`, async (request, reply) => {
@@ -127,7 +130,7 @@ export async function registerRestResource(
       return reply.status(404).send(notFound);
     }
 
-    return reply.status(200).send(data);
+    return reply.status(200).send(shaped(data));
   });
 
   app.delete<{ Params: { id: string } }>(`${config.path}/:id`, async (request, reply) => {
@@ -159,7 +162,7 @@ export async function registerRestResource(
       return reply.status(200).send({
         entity: config.table,
         count: data?.length ?? 0,
-        data,
+        data: shaped(data),
       });
     },
   });
