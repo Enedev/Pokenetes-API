@@ -4,7 +4,7 @@ import { decide, normalQuantile, percentile, requiredSampleSize, summarize, twoP
 // @ts-expect-error plain ESM script without type declarations
 import { groupByTrack, pickWeighted } from '../scripts/canary/load.mjs';
 // @ts-expect-error plain ESM script without type declarations
-import { metricQueries, toTrackSummary } from '../scripts/canary/analyze.mjs';
+import { alignWindow, metricQueries, toTrackSummary } from '../scripts/canary/analyze.mjs';
 import slo from '../canary/slo.json';
 import stages from '../canary/stages.json';
 
@@ -77,6 +77,11 @@ describe('decide', () => {
     expect(decide(slo, { ...healthy, p95_ms: 400 }, { ...healthy, p95_ms: 100 }).decision).toBe('abort');
   });
 
+  it('ignores p95 ratios when both tracks are under the floor', () => {
+    const fast = { ...healthy, p95_ms: 12 };
+    expect(decide(slo, { ...fast, p95_ms: 30 }, fast).decision).toBe('promote');
+  });
+
   it('works without a baseline at 100%', () => {
     expect(decide(slo, healthy, { n: 0, errors5xx: 0, p95_ms: null }).decision).toBe('promote');
   });
@@ -107,6 +112,15 @@ describe('cloudwatch analysis', () => {
     const queries = metricQueries('app/lb/1', { stable: 'tg/s/1', canary: 'tg/c/2' }, 300);
     expect(queries).toHaveLength(12);
     expect(queries[0].MetricStat.Metric.Dimensions[1].Value).toBe('tg/s/1');
+  });
+
+  it('keeps only whole minutes inside the bake', () => {
+    const at = (minute: number, second = 0) => Date.UTC(2026, 9, 27, 17, minute, second);
+    const window = alignWindow(at(26, 50), at(29, 50));
+    expect(window.start.toISOString()).toBe('2026-10-27T17:27:00.000Z');
+    expect(window.end.toISOString()).toBe('2026-10-27T17:29:00.000Z');
+    expect(window.period).toBe(120);
+    expect(alignWindow(at(26, 10), at(26, 40)).period).toBe(60);
   });
 
   it('turns seconds into milliseconds and rates', () => {
