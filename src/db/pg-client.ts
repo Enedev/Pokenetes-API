@@ -4,6 +4,7 @@ const TABLES = new Set(['pokemon', 'entrenador', 'batalla']);
 const COLUMNS = new Set([
   'id',
   'nombre',
+  'apodo',
   'tipo',
   'nivel',
   'region',
