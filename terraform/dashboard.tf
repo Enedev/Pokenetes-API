@@ -12,14 +12,12 @@ locals {
     ]
   }
 
-  latency_series = flatten([
-    for track in keys(local.tracks) : [
-      for p in ["p50", "p95", "p99"] : [
-        "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.lb_dimension, "TargetGroup", local.tg_dimension[track],
-        { stat = p, label = "${track} ${p}", color = local.track_colors[track] }
-      ]
+  latency_series = [
+    for pair in setproduct(keys(local.tracks), ["p50", "p95", "p99"]) : [
+      "AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", local.lb_dimension, "TargetGroup", local.tg_dimension[pair[0]],
+      { stat = pair[1], label = "${pair[0]} ${pair[1]}", color = local.track_colors[pair[0]] }
     ]
-  ])
+  ]
 
   emf_series = {
     for name, stat in { PokemonCreated = "Sum", MemoryRss = "Average", Latency = "p95" } : name => [
