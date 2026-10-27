@@ -44,8 +44,26 @@ describe('runMigrations', () => {
     });
 
     expect(connectMock).toHaveBeenCalled();
-    expect(queryMock).toHaveBeenCalledTimes(3);
+    expect(queryMock).toHaveBeenCalledTimes(4);
     expect(endMock).toHaveBeenCalled();
+  });
+
+  it('expands pokemon with a nullable apodo and never drops anything', async () => {
+    const { runMigrations } = await import('../src/db/migrate');
+
+    await runMigrations({
+      PORT: 3000,
+      NODE_ENV: 'test',
+      SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_PUBLISHABLE_KEY: 'pub',
+      SUPABASE_SECRET_KEY: 'secret',
+      SUPABASE_JWKS_URL: 'https://example.supabase.co/jwks.json',
+      DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
+    });
+
+    const statements = queryMock.mock.calls.map(([sql]) => String(sql));
+    expect(statements.at(-1)).toContain('ADD COLUMN IF NOT EXISTS apodo VARCHAR(50)');
+    expect(statements.join('\n')).not.toMatch(/\bDROP\b|\bRENAME\b/i);
   });
 
   it('verifies tables via supabase when DATABASE_URL is missing', async () => {
