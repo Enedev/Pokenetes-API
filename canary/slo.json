@@ -12,8 +12,10 @@
     "error_rate_pct": { "promote_max": 1, "pause_max": 2, "abort_above": 5 },
     "latency_p95_ms": { "promote_max": 500, "pause_max": 800, "abort_above": 1000 },
     "latency_p99_ms": { "promote_max": 1000, "pause_max": 1500, "abort_above": 2000 },
-    "p95_vs_baseline_ratio": { "promote_max": 1.25, "pause_max": 1.5, "abort_above": 2 }
+    "p95_vs_baseline_ratio": { "promote_max": 1.25, "pause_max": 1.5, "abort_above": 2, "floor_ms": 100 }
   },
+  "gate_source": "cloudwatch: TargetResponseTime y HTTPCode_Target_5XX_Count del ALB en la ventana del bake; las mediciones del cliente incluyen la red y solo se usan si CloudWatch no tiene datos",
+  "metrics_delay_seconds": 75,
   "comparison": {
     "test": "two-proportion z-test sobre la tasa de 5xx, canary contra baseline en la misma ventana",
     "alpha": 0.05,
