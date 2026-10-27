@@ -108,6 +108,39 @@ Los umbrales están en [`canary/slo.json`](canary/slo.json). Las alarmas de Terr
 
 La app escribe las métricas EMF como líneas JSON en stdout (`METRICS_EMF=true`). El driver `awslogs` de Docker las manda a `/pokenetes/canary`, y CloudWatch las convierte en métricas del namespace `Pokenetes/Canary` con la dimensión `Track`. El dashboard `pokenetes-canary` (`terraform output dashboard_url`) pone cada señal con stable en azul y canary en naranja, junto a las alarmas.
 
+### Cambio funcional de v3 y Expand/Contract
+
+`api/v3/pokemon` agrega un `apodo` opcional (máximo 50 caracteres) y devuelve `nombre_mostrado`, que es el `apodo` si existe o el `nombre` si no. `api/v3` también sirve `entrenador`, `batalla` y `/{entidad}/last`. `api/v2` sigue en el mismo binario con su contrato de siempre, así que el orquestador y las APIs de Phol y Dhani no cambian nada.
+
+```bash
+curl -H "x-canary: true" -H "content-type: application/json" \
+  -d '{"nombre":"Pikachu","tipo":"Electrico","nivel":12,"apodo":"Chispa"}' $API/api/v3/pokemon
+# {"id":"...","nombre":"Pikachu","apodo":"Chispa",...,"nombre_mostrado":"Chispa"}
+
+curl $API/api/v2/pokemon/last
+# {"version":"2.0.0","local":{"id":"...","nombre":"Pikachu","tipo":"Electrico","nivel":12,...}}  sin apodo
+```
+
+| Fase | Qué se hace | Estado |
+|---|---|---|
+| Expand | `ALTER TABLE pokemon ADD COLUMN IF NOT EXISTS apodo VARCHAR(50)`. Nullable, sin default y sin reescribir filas. La aplica 3.0.0 al arrancar ([`src/db/migrate.ts`](src/db/migrate.ts)) | Hecho en 3.0.0 |
+| Convivencia | 2.2.0 proyecta solo `id, nombre, tipo, nivel, created_at` ([`POKEMON_V2_COLUMNS`](src/db/schemas/pokemon.ts)), así que ignora la columna nueva aunque la vea. 3.0.0 lee y escribe `apodo` y trata las filas viejas (`apodo` null) mostrando el `nombre` | Durante todo el canary |
+| Contract | Borrar algo que ya nadie use. Solo se haría cuando `api/v2` deje de existir y en otra versión mayor | No aplica: no se borra ni se renombra nada |
+
+Como el esquema solo crece, un rollback a 2.2.0 no necesita migración de vuelta: las filas creadas por 3.0.0 siguen siendo válidas para 2.2.0, y los datos quedan íntegros.
+
+### Inyección de fallas (solo canary)
+
+[`src/http/fault.ts`](src/http/fault.ts) se registra únicamente cuando `APP_TRACK=canary`. En stable las cabeceras se ignoran y `/api/v3/fault` responde 404.
+
+| Mecanismo | Uso |
+|---|---|
+| Cabeceras por petición | `x-fault-error-rate: 0.3` devuelve 500 en el 30% de las peticiones. `x-fault-latency-ms: 1500` agrega 1.5 s |
+| Variables de entorno | `FAULT_ERROR_RATE` y `FAULT_LATENCY_MS` como valores por defecto |
+| En caliente | `PUT /api/v3/fault` con `{"error_rate":0.3}` o `{"latency_ms":1500}`, `GET` para verla y `DELETE` para apagarla |
+
+El 500 se responde en el hook `onRequest`, antes de llegar al handler, así que una petición fallida nunca escribe en la base de datos. `/health` y `/api/v3/fault` quedan fuera, para que el ALB no saque el target y siempre se pueda apagar la falla. Si se define el secreto `CANARY_FAULT_TOKEN`, todo lo anterior exige `x-fault-token`.
+
 ---
 
 ## Entornos y ramas
