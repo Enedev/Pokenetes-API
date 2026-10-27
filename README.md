@@ -27,6 +27,47 @@ Neithan opera AWS. Phol opera Azure y Dhani opera GCP.
 
 ---
 
+## Canary deployment (Seguimiento #3, entrega 4)
+
+La versión estable **2.2.0** (`api/v2`) y la versión canary **3.0.0** (`api/v3`) corren al mismo tiempo en AWS detrás de un Application Load Balancer. El balanceador manda al canary un porcentaje controlado del tráfico público, y las alarmas sobre los SLO lo regresan a 0% si algo se degrada.
+
+```mermaid
+flowchart LR
+    U[Clientes y generador de carga] -->|HTTP :80| ALB[ALB pokenetes-alb]
+    ALB -->|"regla 10: header x-canary = true"| TGC
+    ALB -->|"default: forward ponderado 100-w"| TGS
+    ALB -->|"default: forward ponderado w"| TGC
+    subgraph VPC 10.30.0.0/16
+        TGS[TG pokenetes-stable] --> ES["EC2 stable<br/>imagen 2.2.0 @sha256<br/>APP_TRACK=stable"]
+        TGC[TG pokenetes-canary] --> EC["EC2 canary<br/>imagen 3.0.0 @sha256<br/>APP_TRACK=canary"]
+        ES --> RDS[(RDS Postgres<br/>tabla pokemon + apodo nullable)]
+        EC --> RDS
+    end
+    ES -. "awslogs + EMF" .-> CW[CloudWatch<br/>Pokenetes/Canary por Track<br/>+ AWS/ApplicationELB por TG]
+    EC -. "awslogs + EMF" .-> CW
+    ALB -. métricas por target group .-> CW
+    CW --> D[Dashboard stable vs canary]
+    CW -->|"alarma 5xx / p95 / unhealthy en ALARM"| EB[EventBridge]
+    EB --> L[Lambda pokenetes-canary-rollback]
+    L -->|"ModifyListener 100/0"| ALB
+    GH[GitHub Actions<br/>Canary Release] -->|"stages.json + slo.json"| R[scripts/canary/rollout.mjs]
+    R -->|"modify-listener w = 0, 10, 50, 100"| ALB
+    R -->|"GetMetricData + describe-alarms"| CW
+```
+
+| Pieza | Qué hace | Dónde |
+|---|---|---|
+| Proveedor | AWS (us-east-1), todo con Terraform | [`terraform/`](terraform/) |
+| Enrutamiento | Listener HTTP del ALB con `forward` ponderado entre dos target groups, más una regla que manda `x-canary: true` siempre al canary | [`terraform/alb.tf`](terraform/alb.tf) |
+| Artefacto inmutable | Cada instancia corre la imagen de ECR fijada por digest (`repo@sha256:...`). Terraform rechaza una imagen sin digest | [`terraform/variables.tf`](terraform/variables.tf), [`terraform/ec2.tf`](terraform/ec2.tf) |
+| Automatización | `Terraform Infrastructure` construye `2.2.0` y `3.0.0` desde sus tags y despliega por digest. `Canary Release` recorre las etapas | [`.github/workflows/`](.github/workflows/) |
+| Umbrales versionados | SLO y etapas en JSON. Terraform y los scripts leen los mismos archivos | [`canary/slo.json`](canary/slo.json), [`canary/stages.json`](canary/stages.json) |
+| Rollback automático | Alarmas de CloudWatch, regla de EventBridge y Lambda que vuelve a 100/0 | [`terraform/cloudwatch.tf`](terraform/cloudwatch.tf), [`terraform/rollback.tf`](terraform/rollback.tf) |
+
+Cada respuesta dice qué la atendió con las cabeceras `X-App-Version` (`2.2.0` o `3.0.0`), `X-App-Track` (`stable` o `canary`) y `X-Api-Version` (`v1`, `v2` o `v3`). `/health` devuelve además `app_version` y `track` en el cuerpo.
+
+---
+
 ## Entornos y ramas
 
 | Rama | Entorno | Coverage mínimo |
