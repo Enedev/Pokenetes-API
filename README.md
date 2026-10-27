@@ -1,6 +1,6 @@
 # Pokenetes
 
-API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. En AWS los datos viven en **RDS Postgres**. Versión actual: **2.0.0** (`/api/v2`).
+API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. En AWS los datos viven en **RDS Postgres**. Versión estable: **2.2.0** (`/api/v2`). Versión canary: **3.0.0** (`/api/v3`, con `/api/v2` intacta).
 
 - API: http://a9882c6970a5d426d9e2f19b89c56119-333357364.us-east-1.elb.amazonaws.com
 - Orquestador: https://tdedeofhzd.execute-api.us-east-1.amazonaws.com/test
@@ -140,6 +140,40 @@ Como el esquema solo crece, un rollback a 2.2.0 no necesita migración de vuelta
 | En caliente | `PUT /api/v3/fault` con `{"error_rate":0.3}` o `{"latency_ms":1500}`, `GET` para verla y `DELETE` para apagarla |
 
 El 500 se responde en el hook `onRequest`, antes de llegar al handler, así que una petición fallida nunca escribe en la base de datos. `/health` y `/api/v3/fault` quedan fuera, para que el ALB no saque el target y siempre se pueda apagar la falla. Si se define el secreto `CANARY_FAULT_TOKEN`, todo lo anterior exige `x-fault-token`.
+
+### Cómo levantarlo y hacer el demo
+
+1. **Infraestructura**: Actions → `Terraform Infrastructure` → `apply` con `stable_ref=2.2.0` y `canary_ref=3.0.0`. Construye las dos imágenes desde sus tags, las fija por digest, crea todo y espera a que los dos targets estén healthy. Arranca en Stage 0 (100/0).
+2. **Rollout**: Actions → `Canary Release` → `rollout`. Para una sola etapa, `stage` con `stage-1`, por ejemplo. `rollback` deja el canary en 0% a mano y `analyze` compara los tracks con los datos de CloudWatch.
+3. **Apagar**: `Terraform Infrastructure` → `destroy`.
+
+Lo mismo desde la terminal, con `terraform init` hecho en `terraform/` y credenciales de AWS:
+
+```bash
+API=$(terraform -chdir=terraform output -raw api_url)
+
+# a) Stage 0: el público va a stable y la cabecera entra al canary
+curl -si $API/health | grep -i x-app-
+curl -si -H "x-canary: true" $API/health | grep -i x-app-
+
+# b) Split real: mueve el peso y cuenta quién responde
+npm run canary:weight -- 10
+npm run canary:load -- --seconds=60        # imprime canary_share_pct (≈10)
+
+# c) Comparación justa en el dashboard y por CLI
+npm run canary:analyze -- --minutes=5
+
+# d1) Promoción completa 0 → 10 → 50 → 100 con bake times y gates
+npm run canary:rollout
+
+# d2) Rollback: 30% de 500s en el canary al entrar a Stage 1
+npm run canary:weight -- 0
+npm run canary:rollout -- --fault-at=stage-1 --fault-error-rate=0.3
+# o a mano: npm run canary:fault -- error 0.3  y espera la alarma (~1-2 min)
+npm run canary:weight                       # canary = 0
+```
+
+En el caso d2 hay dos rollbacks independientes: el gate del script aborta al final del bake, y la alarma `pokenetes-canary-5xx-rate` dispara la Lambda `pokenetes-canary-rollback` (sus logs quedan en `/aws/lambda/pokenetes-canary-rollback`). Las peticiones fallidas nunca llegaron a la base de datos, así que no hay nada que limpiar.
 
 ---
 
@@ -291,7 +325,7 @@ Cada entidad expone todos estos verbos: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`,
 
 `HEAD` lo genera Fastify a partir de cada `GET`.
 
-Las mismas rutas de negocio existen bajo `/api/v2` (listar, crear, actualizar, borrar). El GET all de v2 **no** mezcla APIs ajenas. El GET by id de v2 **sí** pide el last de las otras nubes.
+Las mismas rutas de negocio existen bajo `/api/v2` y `/api/v3` (listar, crear, actualizar, borrar). `/api/{entidad}` sin versión sirve `v2` en 2.2.0 y `v3` en 3.0.0; esa es la ruta que reparte el canary. El GET all de v2 **no** mezcla APIs ajenas. El GET by id de v2 **sí** pide el last de las otras nubes.
 
 ### GET /api/v2/{entidad}/last
 
@@ -330,7 +364,7 @@ APIs compañeras:
 
 Hasta que esas URLs existan, deja `BIBLIO_API_URL` y `HOSPITALINE_API_URL` vacías.
 
-El tag `v1.0.0` marca Seguimiento #1. El tag `v2.0.0` se crea al terminar Seguimiento #2.
+El tag `v1.0.0` marca Seguimiento #1 y `2.0.0` Seguimiento #2. `2.1.0` es Terraform, `2.2.0` la base estable del canary y `3.0.0` el canary.
 
 ## Orquestador
 
@@ -390,13 +424,14 @@ Si configuras `DATABASE_URL`, la app aplica el DDL sola al iniciar.
 
 ## GitHub Actions (CI/CD)
 
-Hay **tres pipelines**. No se ejecutan en tu PC: corren en los servidores de GitHub.
+Hay **cuatro pipelines**. No se ejecutan en tu PC: corren en los servidores de GitHub.
 
 | Archivo | Nombre en GitHub | Se dispara cuando | Coverage |
 |---|---|---|---|
 | `.github/workflows/test-pipeline.yml` | **Test Environment Pipeline** | Push o PR a `dev`, o corrida manual | ≥ 50% |
 | `.github/workflows/prod-pipeline.yml` | **Production Environment Pipeline** | Push a `main`, o corrida manual | ≥ 50% |
-| `.github/workflows/terraform-pipeline.yml` | **Terraform Infrastructure** | Solo manual. `apply` crea la nube e instala la API. `destroy` la borra. | no aplica |
+| `.github/workflows/terraform-pipeline.yml` | **Terraform Infrastructure** | Solo manual. `apply` construye stable y canary desde sus tags, los fija por digest y crea la nube. `destroy` la borra. | no aplica |
+| `.github/workflows/canary-pipeline.yml` | **Canary Release** | Solo manual. `rollout`, `stage`, `rollback` o `analyze` sobre el canary desplegado. | no aplica |
 
 Cada corrida hace: instalar → build → tests → coverage.
 
@@ -459,8 +494,13 @@ src/
   db/client.ts          Cliente Supabase
   db/migrate.ts         Migraciones / verificación de tablas
   db/schemas/           DDL de pokemon, entrenador, batalla
-  routes/               REST de las 3 entidades + last v2
+  routes/               REST de las 3 entidades, last, contrato v3 (pokemon-v3.ts)
+  http/release.ts       Cabeceras X-App-Version, X-App-Track, X-Api-Version
+  http/fault.ts         Inyección de fallas, solo en canary
+  metrics/              Métricas EMF por track
   integrations/         Cliente HTTP de APIs compañeras
+canary/                 slo.json y stages.json versionados
+scripts/canary/         Rollout, carga, análisis, pesos y fallas
 tests/                  Vitest
 docker/init.sql         Tablas para Postgres local
 Dockerfile              Imagen de la API
