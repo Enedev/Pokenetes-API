@@ -1,7 +1,7 @@
 import pg from 'pg';
 import { AppEnv } from '../config/env';
 import { getSupabaseClient } from './client';
-import { POKEMON_DDL, POKEMON_TABLE } from './schemas/pokemon';
+import { POKEMON_APODO_DDL, POKEMON_DDL, POKEMON_TABLE } from './schemas/pokemon';
 import { ENTRENADOR_DDL, ENTRENADOR_TABLE } from './schemas/entrenador';
 import { BATALLA_DDL, BATALLA_TABLE } from './schemas/batalla';
 
@@ -10,6 +10,9 @@ const MIGRATIONS = [
   { name: ENTRENADOR_TABLE, ddl: ENTRENADOR_DDL },
   { name: BATALLA_TABLE, ddl: BATALLA_DDL },
 ];
+
+// Expand only: additive and nullable, so the v2 build keeps running against the same table.
+const EXPANSIONS = [{ name: `${POKEMON_TABLE}.apodo`, ddl: POKEMON_APODO_DDL }];
 
 async function applyMigrationsWithPg(databaseUrl: string): Promise<void> {
   const client = new pg.Client({
@@ -23,6 +26,11 @@ async function applyMigrationsWithPg(databaseUrl: string): Promise<void> {
     for (const migration of MIGRATIONS) {
       await client.query(migration.ddl);
       console.log(`[migrate] Applied schema for table: ${migration.name}`);
+    }
+
+    for (const expansion of EXPANSIONS) {
+      await client.query(expansion.ddl);
+      console.log(`[migrate] Expanded schema: ${expansion.name}`);
     }
   } finally {
     await client.end();
