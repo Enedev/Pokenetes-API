@@ -11,3 +11,5 @@ dist/
 RENDER_SETUP.md
 k8s/secret.yaml
 
+
+canary/reports/
