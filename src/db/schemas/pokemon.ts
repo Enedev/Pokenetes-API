@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS ${POKEMON_TABLE} (
 );
 `;
 
+export const POKEMON_V2_COLUMNS = ['id', 'nombre', 'tipo', 'nivel', 'created_at'] as const;
+
 export interface PokemonRecord {
   id?: string;
   nombre: string;
