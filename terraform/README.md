@@ -34,15 +34,13 @@ terraform init
 terraform apply
 ```
 
-`terraform apply` pide confirmación. Crea la red, la instancia, RDS, SQS, ECR y el secreto. Al arrancar, la instancia instala Docker, baja la imagen `pokenetes-api` desde ECR y publica la API en el puerto 80. La URL queda en `terraform output api_url`.
+`terraform apply` pide las imágenes `stable_image` y `canary_image` por digest (`repo@sha256:...`). Crea la red, el ALB, las dos instancias, RDS, SQS, ECR, el secreto, las alarmas, el dashboard y la Lambda. Arranca en Stage 0: 100% stable y 0% canary, con `x-canary: true` yendo siempre al canary. La URL queda en `terraform output api_url`.
 
-## Instalar la API
+## Instalar las dos versiones
 
-En GitHub: Actions → **Terraform Infrastructure** → **Run workflow** → action `apply`.
+En GitHub: Actions → **Terraform Infrastructure** → **Run workflow** → action `apply`, con `stable_ref=2.2.0` y `canary_ref=3.0.0`.
 
-Ese workflow ejecuta `terraform apply` y después construye la imagen, la sube a ECR y la arranca en la instancia con Docker, en el puerto 80. La URL queda en el output `api_url`.
-
-También se puede instalar a mano, después del apply, con el id de `terraform output instance_id` y la imagen publicada en ECR. El contenedor lee el secreto `pokenetes/terraform` al arrancar.
+Ese workflow construye las dos imágenes desde sus tags, las sube a ECR, las fija por digest y espera a que los dos targets estén healthy. Después, Actions → **Canary Release** recorre las etapas de `canary/stages.json`.
 
 ## Eliminar la infraestructura
 
@@ -54,7 +52,7 @@ terraform destroy
 
 O en GitHub Actions, el mismo workflow con action `destroy`.
 
-`destroy` borra la instancia, la base, las colas, el repositorio de imágenes y el secreto. El bucket del estado no se borra solo. Cuando el destroy termine y ya no haga falta repetirlo:
+`destroy` borra el ALB, las dos instancias, la base, las colas, el repositorio, el secreto, las alarmas, el dashboard y la Lambda. El bucket del estado no se borra solo. Cuando el destroy termine y ya no haga falta repetirlo:
 
 ```bash
 aws s3 rb s3://pokenetes-terraform-state-722500516562 --force
