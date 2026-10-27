@@ -2,20 +2,24 @@
 
 ![Seguimiento 3. Terraform crea la API en AWS](../docs/seguimiento3-terraform.jpg)
 
-Estos archivos crean la infraestructura de AWS para la API Pokenetes y dejan una instancia donde el pipeline instala el contenedor. Cada servicio está en su propio archivo:
+Estos archivos crean la infraestructura de AWS para el canary: un ALB, dos instancias (stable y canary) fijadas por digest, RDS, alarmas y la Lambda de rollback. Cada servicio está en su propio archivo:
 
 | Archivo | Servicio |
 |---|---|
 | `vpc.tf` | VPC, subredes e internet gateway |
-| `security.tf` | Security groups de la API y de Postgres |
-| `ec2.tf` | Instancia de la API, rol e IAM |
+| `security.tf` | Security groups del ALB, de la API y de Postgres |
+| `ec2.tf` | Una instancia por track, rol e IAM |
+| `alb.tf` | Application Load Balancer, target groups y la regla `x-canary` |
 | `rds.tf` | Base de datos PostgreSQL |
 | `sqs.tf` | Cola del flujo y su DLQ |
 | `ecr.tf` | Repositorio de la imagen |
-| `secrets.tf` | Secreto con la URL de la base y la cola |
+| `secrets.tf` | Secreto con la URL de la base, la cola y el token de fallas |
+| `cloudwatch.tf` | Alarmas de aborto leídas de `canary/slo.json` |
+| `dashboard.tf` | Tablero stable vs canary |
+| `rollback.tf` | Lambda que vuelve el tráfico a 100/0 |
 | `providers.tf` | Proveedor AWS y el estado remoto en S3 |
-| `variables.tf` | Región y nombre del proyecto |
-| `outputs.tf` | URL pública, instancia y repositorio |
+| `variables.tf` | Región, digests, stickiness y rollback |
+| `outputs.tf` | URL del ALB, dashboard, target groups y repositorio |
 
 No hay un único `main.tf`. El estado queda en el bucket `pokenetes-terraform-state-722500516562`, no en git.
 
