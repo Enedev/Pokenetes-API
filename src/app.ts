@@ -13,6 +13,7 @@ import { resolveTrack } from './config/release';
 import { runMigrations } from './db/migrate';
 import { observeRequests, resolveTraceId } from './http/trace';
 import { tagResponses } from './http/release';
+import { FaultOptions, registerFaultInjection } from './http/fault';
 import { recordRequestMetrics } from './metrics/requests';
 import { startSaturationSampler } from './metrics/saturation';
 import { pokemonRoutes } from './routes/pokemon';
@@ -49,6 +50,7 @@ export async function buildApp(
   env: AppEnv,
   supabase?: ReturnType<typeof import('./db/client').getSupabaseClient>,
   fetchImpl?: FetchLike,
+  faultOptions?: FaultOptions,
 ) {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
   const track = resolveTrack(env.APP_TRACK);
@@ -59,6 +61,7 @@ export async function buildApp(
     request.headers['x-trace-id'] = resolveTraceId(request.headers['x-trace-id']);
   });
   observeRequests(app);
+  registerFaultInjection(app, env, track, faultOptions);
 
   app.get('/', async () => ({
     name: 'Pokenetes API',
