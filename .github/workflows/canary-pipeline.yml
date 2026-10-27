@@ -1,0 +1,97 @@
+name: Canary Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: rollout recorre las etapas de canary/stages.json; stage corre solo una; rollback deja el canary en 0%; analyze compara los tracks.
+        required: true
+        type: choice
+        options:
+          - rollout
+          - stage
+          - rollback
+          - analyze
+      stage:
+        description: Etapa para action=stage (stage-0, stage-1, stage-2 o stage-3).
+        required: false
+        default: stage-1
+      fault_at:
+        description: Inyecta 500s en el canary al entrar a esta etapa (vacio = sin falla).
+        required: false
+        default: ""
+      fault_error_rate:
+        description: Proporcion de 500s inyectados en el canary.
+        required: false
+        default: "0.3"
+
+concurrency:
+  group: pokenetes-canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: us-east-1
+      FAULT_TOKEN: ${{ secrets.CANARY_FAULT_TOKEN }}
+      CANARY_OUTPUTS: ${{ github.workspace }}/canary-outputs.json
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Read the deployed canary
+        run: |
+          terraform -chdir=terraform init -input=false
+          terraform -chdir=terraform output -json > "$CANARY_OUTPUTS"
+          jq '{api_url: .api_url.value, images: .images.value, dashboard: .dashboard_url.value}' "$CANARY_OUTPUTS"
+          node scripts/canary/set-weight.mjs
+
+      - name: Staged rollout
+        if: inputs.action == 'rollout'
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.fault_at }}" ]; then
+            ARGS="--fault-at=${{ inputs.fault_at }} --fault-error-rate=${{ inputs.fault_error_rate }}"
+          fi
+          node scripts/canary/rollout.mjs $ARGS
+
+      - name: Single stage
+        if: inputs.action == 'stage'
+        run: |
+          ARGS="--only=${{ inputs.stage }}"
+          if [ -n "${{ inputs.fault_at }}" ]; then
+            ARGS="$ARGS --fault-at=${{ inputs.fault_at }} --fault-error-rate=${{ inputs.fault_error_rate }}"
+          fi
+          node scripts/canary/rollout.mjs $ARGS
+
+      - name: Rollback to 0% canary
+        if: inputs.action == 'rollback'
+        run: |
+          node scripts/canary/set-weight.mjs 0
+          node scripts/canary/fault.mjs off || true
+
+      - name: Compare stable and canary
+        if: always() && inputs.action != 'rollback'
+        run: node scripts/canary/analyze.mjs --minutes=5 || true
+
+      - name: Keep the rollout report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canary-report-${{ github.run_id }}
+          path: canary/reports/
+          if-no-files-found: ignore
