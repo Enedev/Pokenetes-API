@@ -5,6 +5,8 @@ import { resolveTrack } from './config/release';
 import { runMigrations } from './db/migrate';
 import { observeRequests, resolveTraceId } from './http/trace';
 import { tagResponses } from './http/release';
+import { recordRequestMetrics } from './metrics/requests';
+import { startSaturationSampler } from './metrics/saturation';
 import { pokemonRoutes } from './routes/pokemon';
 import { entrenadorRoutes } from './routes/entrenador';
 import { batallaRoutes } from './routes/batalla';
@@ -20,6 +22,7 @@ export async function buildApp(
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
   const track = resolveTrack(env.APP_TRACK);
   tagResponses(app, track);
+  recordRequestMetrics(app, track);
 
   app.addHook('onRequest', async (request) => {
     request.headers['x-trace-id'] = resolveTraceId(request.headers['x-trace-id']);
@@ -88,6 +91,7 @@ export async function startServer(env: AppEnv) {
   const app = await buildApp(env);
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });
+  startSaturationSampler(resolveTrack(env.APP_TRACK));
 
   return app;
 }
