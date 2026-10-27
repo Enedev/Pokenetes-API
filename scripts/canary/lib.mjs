@@ -14,7 +14,7 @@ export const loadSlo = () => readJson('canary/slo.json');
 export const loadStages = () => readJson('canary/stages.json');
 
 export function aws(args) {
-  const out = execFileSync('aws', [...args, '--output', 'json'], { encoding: 'utf8', shell: process.platform === 'win32' });
+  const out = execFileSync('aws', [...args, '--output', 'json'], { encoding: 'utf8' });
   return out.trim() ? JSON.parse(out) : {};
 }
 
