@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { AppEnv } from './config/env';
-import { API_VERSION, API_V2_PREFIX } from './config/version';
+import { API_VERSION, API_V2_PREFIX, APP_VERSION } from './config/version';
 import { resolveTrack } from './config/release';
 import { runMigrations } from './db/migrate';
 import { observeRequests, resolveTraceId } from './http/trace';
@@ -53,6 +53,8 @@ export async function buildApp(
   app.get('/health', async () => ({
     status: 'ok',
     version: API_VERSION,
+    app_version: APP_VERSION,
+    track,
     environment: env.NODE_ENV,
   }));
 
