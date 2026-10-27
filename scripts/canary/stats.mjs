@@ -89,7 +89,7 @@ export function decide(slo, canary, baseline) {
   ];
 
   if (baseline && baseline.n > 0 && baseline.p95_ms) {
-    const ratio = canary.p95_ms / Math.max(baseline.p95_ms, 1);
+    const ratio = canary.p95_ms / Math.max(baseline.p95_ms, t.p95_vs_baseline_ratio.floor_ms ?? 1);
     checks.push({ sli: 'p95_vs_baseline_ratio', value: ratio, verdict: level(ratio, t.p95_vs_baseline_ratio) });
   }
 
