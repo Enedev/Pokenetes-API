@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.0 - 2026-10-27
+
+Línea base estable del canary. El contrato de `api/v2` no cambia.
+
+- Cabeceras `X-App-Version`, `X-App-Track` y `X-Api-Version` en todas las respuestas. `/health` incluye `app_version` y `track`.
+- Rutas públicas sin versión (`/api/{entidad}`). En esta versión sirven `api/v2`.
+- `api/v2` devuelve solo sus columnas de `pokemon`, aunque el esquema crezca.
+- Métricas EMF de CloudWatch por track: peticiones, latencia, errores 4xx/5xx, CPU y memoria del proceso, y `PokemonCreated`.
+
 ## Unreleased (hacia 2.0.0)
 
 El tag `v2.0.0` se crea **al cerrar** Seguimiento #2 (orquestador, AWS, cola, peers en OCI/Azure y observabilidad).
