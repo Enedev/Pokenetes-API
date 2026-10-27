@@ -3,7 +3,7 @@ import { buildApp } from '../src/app';
 import { configureEmf, emfLine, EMF_NAMESPACE } from '../src/metrics/emf';
 import { isPokemonCreated } from '../src/metrics/requests';
 import { sampleSaturation, startSaturationSampler } from '../src/metrics/saturation';
-import { APP_VERSION } from '../src/config/version';
+import { APP_VERSION, PUBLIC_API_VERSION } from '../src/config/version';
 import { mockEnv, createCrudClient, createInsertClient } from './helpers';
 
 function capture(): string[] {
@@ -37,7 +37,7 @@ describe('request metrics', () => {
 
     const docs = lines.map((line) => JSON.parse(line));
     expect(docs).toHaveLength(2);
-    expect(docs[0]).toMatchObject({ Track: 'stable', Requests: 1, Errors5xx: 0, Errors4xx: 0, api: 'v2' });
+    expect(docs[0]).toMatchObject({ Track: 'stable', Requests: 1, Errors5xx: 0, Errors4xx: 0, api: PUBLIC_API_VERSION });
     expect(docs[0].Latency).toBeGreaterThanOrEqual(0);
     expect(docs[1]).toMatchObject({ Errors4xx: 1, status: 404 });
   });

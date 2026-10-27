@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { buildApp } from '../src/app';
-import { PUBLIC_API_VERSION } from '../src/config/version';
+import { contractVersionOf, PUBLIC_API_VERSION } from '../src/config/version';
+import { toPokemonV3 } from '../src/routes/pokemon-v3';
 import { mockEnv, createCrudClient, createInsertClient } from './helpers';
 
 const celebi = { id: 'pokemon-7', nombre: 'Celebi', tipo: 'Psiquico', nivel: 30 };
+const served = PUBLIC_API_VERSION === 'v3' ? toPokemonV3(celebi) : celebi;
 
 describe('versionless /api routes', () => {
   it('lists pokemon on /api/pokemon', async () => {
@@ -11,7 +13,7 @@ describe('versionless /api routes', () => {
     const response = await app.inject({ method: 'GET', url: '/api/pokemon' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual([celebi]);
+    expect(response.json()).toEqual([served]);
     expect(response.headers['x-api-version']).toBe(PUBLIC_API_VERSION);
   });
 
@@ -20,7 +22,8 @@ describe('versionless /api routes', () => {
     const response = await app.inject({ method: 'GET', url: '/api/pokemon/last' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().local).toEqual(celebi);
+    expect(response.json().local).toEqual(served);
+    expect(response.json().version).toBe(contractVersionOf(PUBLIC_API_VERSION));
   });
 
   it('creates a pokemon on /api/pokemon', async () => {
@@ -32,7 +35,7 @@ describe('versionless /api routes', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json()).toEqual(celebi);
+    expect(response.json()).toEqual(served);
   });
 
   it('composes the peers on /api/pokemon/:id', async () => {
@@ -41,7 +44,7 @@ describe('versionless /api routes', () => {
     const body = (await app.inject({ method: 'GET', url: '/api/pokemon/pokemon-7' })).json();
 
     expect(body.entity).toBe('pokemon');
-    expect(body.local).toEqual(celebi);
+    expect(body.local).toEqual(served);
     expect(body.peers).toBeDefined();
   });
 
