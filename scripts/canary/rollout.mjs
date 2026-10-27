@@ -4,6 +4,7 @@ import { alarmStates, currentWeights, loadSlo, loadStages, log, outputs, ROOT, s
 import { runLoad } from './load.mjs';
 import { decide } from './stats.mjs';
 import { setFault } from './fault.mjs';
+import { analyzeWindow } from './analyze.mjs';
 
 function arg(name) {
   const found = process.argv.find((value) => value.startsWith(`--${name}=`));
@@ -48,6 +49,7 @@ async function waitForAlarmsOk() {
 
 async function bake(stage, seconds) {
   let firing = [];
+  const startedAt = Date.now();
   const result = await runLoad({
     baseUrl: apiUrl,
     durationSeconds: seconds,
@@ -59,7 +61,17 @@ async function bake(stage, seconds) {
       log('rollout.bake', { stage: stage.name, total, byTrack, firing });
     },
   });
-  return { ...result, firing };
+  const endedAt = Date.now();
+
+  log('rollout.waiting_metrics', { stage: stage.name, seconds: slo.metrics_delay_seconds });
+  await sleep(slo.metrics_delay_seconds * 1000);
+  firing = alarmStates().filter((alarm) => alarm.state === 'ALARM');
+
+  const server = analyzeWindow(startedAt, endedAt);
+  const client = decide(slo, result.byTrack.canary, result.byTrack.stable);
+  const verdict = server.canary.n > 0 ? server.verdict : client;
+
+  return { ...result, firing, server, client, verdict };
 }
 
 await waitForAlarmsOk();
@@ -77,22 +89,21 @@ for (const stage of stages) {
   }
 
   let outcome = await bake(stage, stage.bake_seconds);
-  let verdict = decide(slo, outcome.byTrack.canary, outcome.byTrack.stable);
 
-  if (verdict.decision === 'pause' && outcome.firing.length === 0) {
-    log('rollout.paused', { stage: stage.name, verdict });
+  if (outcome.verdict.decision === 'pause' && outcome.firing.length === 0) {
+    log('rollout.paused', { stage: stage.name, verdict: outcome.verdict });
     outcome = await bake(stage, Math.ceil(stage.bake_seconds / 2));
-    verdict = decide(slo, outcome.byTrack.canary, outcome.byTrack.stable);
   }
 
+  const { verdict } = outcome;
   const total = outcome.samples.length;
   const observedShare = total === 0 ? 0 : (100 * outcome.byTrack.canary.n) / total;
   report.stages.push({
     stage: stage.name,
     weight: stage.weight,
     observed_canary_share_pct: Number(observedShare.toFixed(2)),
-    stable: outcome.byTrack.stable,
-    canary: outcome.byTrack.canary,
+    server: { window: outcome.server.window, stable: outcome.server.stable, canary: outcome.server.canary },
+    client: { stable: outcome.byTrack.stable, canary: outcome.byTrack.canary, decision: outcome.client.decision },
     verdict,
     firing: outcome.firing,
   });
