@@ -1,8 +1,10 @@
 import Fastify from 'fastify';
 import { AppEnv } from './config/env';
 import { API_VERSION, API_V2_PREFIX } from './config/version';
+import { resolveTrack } from './config/release';
 import { runMigrations } from './db/migrate';
 import { observeRequests, resolveTraceId } from './http/trace';
+import { tagResponses } from './http/release';
 import { pokemonRoutes } from './routes/pokemon';
 import { entrenadorRoutes } from './routes/entrenador';
 import { batallaRoutes } from './routes/batalla';
@@ -16,6 +18,8 @@ export async function buildApp(
   fetchImpl?: FetchLike,
 ) {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
+  const track = resolveTrack(env.APP_TRACK);
+  tagResponses(app, track);
 
   app.addHook('onRequest', async (request) => {
     request.headers['x-trace-id'] = resolveTraceId(request.headers['x-trace-id']);
