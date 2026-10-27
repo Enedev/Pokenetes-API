@@ -16,6 +16,9 @@ export interface AppEnv {
   HOSPITALINE_LAST_PATH: string;
   HOSPITALINE_LIST_PATH: string;
   APP_TRACK?: string;
+  FAULT_LATENCY_MS?: string;
+  FAULT_ERROR_RATE?: string;
+  FAULT_TOKEN?: string;
 }
 
 function resolveEnvFile(): string {
@@ -60,5 +63,8 @@ export function loadEnv(): AppEnv {
     HOSPITALINE_LAST_PATH: process.env.HOSPITALINE_LAST_PATH ?? '/api/v2/hospitals/last',
     HOSPITALINE_LIST_PATH: process.env.HOSPITALINE_LIST_PATH ?? '/api/v1/hospitals',
     APP_TRACK: process.env.APP_TRACK,
+    FAULT_LATENCY_MS: process.env.FAULT_LATENCY_MS,
+    FAULT_ERROR_RATE: process.env.FAULT_ERROR_RATE,
+    FAULT_TOKEN: process.env.FAULT_TOKEN,
   };
 }
