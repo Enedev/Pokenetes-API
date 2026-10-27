@@ -1,0 +1,39 @@
+{
+  "load": {
+    "concurrency": 12,
+    "mix": [
+      { "weight": 3, "method": "GET", "path": "/api/pokemon/last" },
+      { "weight": 2, "method": "GET", "path": "/api/entrenador/last" },
+      { "weight": 2, "method": "GET", "path": "/api/batalla/last" },
+      { "weight": 2, "method": "GET", "path": "/api/pokemon" },
+      { "weight": 1, "method": "POST", "path": "/api/pokemon", "body": { "nombre": "Ditto", "tipo": "Normal", "nivel": 10, "apodo": "Canario" } }
+    ]
+  },
+  "stages": [
+    {
+      "name": "stage-0",
+      "weight": 0,
+      "bake_seconds": 90,
+      "canary_header_share": 0.5,
+      "description": "0% publico. Solo entra quien manda x-canary: true; la mitad de la carga lo manda para comparar con el baseline."
+    },
+    {
+      "name": "stage-1",
+      "weight": 10,
+      "bake_seconds": 180,
+      "description": "10% del trafico publico al canary."
+    },
+    {
+      "name": "stage-2",
+      "weight": 50,
+      "bake_seconds": 180,
+      "description": "50% del trafico publico al canary."
+    },
+    {
+      "name": "stage-3",
+      "weight": 100,
+      "bake_seconds": 120,
+      "description": "100% al canary. La version nueva queda promovida."
+    }
+  ]
+}
