@@ -10,11 +10,20 @@ CREATE TABLE IF NOT EXISTS ${POKEMON_TABLE} (
 );
 `;
 
+export const POKEMON_APODO_MAX = 50;
+
+export const POKEMON_APODO_DDL = `
+ALTER TABLE ${POKEMON_TABLE} ADD COLUMN IF NOT EXISTS apodo VARCHAR(${POKEMON_APODO_MAX});
+`;
+
 export const POKEMON_V2_COLUMNS = ['id', 'nombre', 'tipo', 'nivel', 'created_at'] as const;
+
+export const POKEMON_V3_COLUMNS = ['id', 'nombre', 'apodo', 'tipo', 'nivel', 'created_at'] as const;
 
 export interface PokemonRecord {
   id?: string;
   nombre: string;
+  apodo?: string | null;
   tipo: string;
   nivel?: number;
   created_at?: string;
