@@ -15,6 +15,7 @@ export interface AppEnv {
   HOSPITALINE_API_URL?: string;
   HOSPITALINE_LAST_PATH: string;
   HOSPITALINE_LIST_PATH: string;
+  APP_TRACK?: string;
 }
 
 function resolveEnvFile(): string {
@@ -58,5 +59,6 @@ export function loadEnv(): AppEnv {
     HOSPITALINE_API_URL: process.env.HOSPITALINE_API_URL,
     HOSPITALINE_LAST_PATH: process.env.HOSPITALINE_LAST_PATH ?? '/api/v2/hospitals/last',
     HOSPITALINE_LIST_PATH: process.env.HOSPITALINE_LIST_PATH ?? '/api/v1/hospitals',
+    APP_TRACK: process.env.APP_TRACK,
   };
 }
