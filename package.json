@@ -1,6 +1,6 @@
 {
   "name": "pokenetes",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "Pokenetes RESTful API - Fastify backend with Supabase",
   "main": "dist/index.js",
   "scripts": {
