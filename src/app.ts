@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { AppEnv } from './config/env';
-import { API_VERSION, API_V2_PREFIX, APP_VERSION } from './config/version';
+import { API_VERSION, API_V2_PREFIX, APP_VERSION, PUBLIC_API_PREFIX, PUBLIC_API_VERSION } from './config/version';
 import { resolveTrack } from './config/release';
 import { runMigrations } from './db/migrate';
 import { observeRequests, resolveTraceId } from './http/trace';
@@ -47,6 +47,13 @@ export async function buildApp(
         getById: `GET ${API_V2_PREFIX}/{pokemon|entrenador|batalla}/:id`,
         query: `QUERY ${API_V2_PREFIX}/query`,
       },
+      public: {
+        serves: PUBLIC_API_VERSION,
+        pokemon: `GET|POST|PUT|PATCH|DELETE ${PUBLIC_API_PREFIX}/pokemon`,
+        entrenador: `GET|POST|PUT|PATCH|DELETE ${PUBLIC_API_PREFIX}/entrenador`,
+        batalla: `GET|POST|PUT|PATCH|DELETE ${PUBLIC_API_PREFIX}/batalla`,
+        last: `GET ${PUBLIC_API_PREFIX}/{pokemon|entrenador|batalla}/last`,
+      },
     },
   }));
 
@@ -63,6 +70,10 @@ export async function buildApp(
   await entrenadorRoutes(app, env, supabase, `${API_V2_PREFIX}/entrenador`, fetchImpl);
   await batallaRoutes(app, env, supabase, `${API_V2_PREFIX}/batalla`, fetchImpl);
   await queryRoutes(app, env, supabase, `${API_V2_PREFIX}/query`);
+  await lastRoutes(app, env, supabase, PUBLIC_API_PREFIX);
+  await pokemonRoutes(app, env, supabase, `${PUBLIC_API_PREFIX}/pokemon`, fetchImpl);
+  await entrenadorRoutes(app, env, supabase, `${PUBLIC_API_PREFIX}/entrenador`, fetchImpl);
+  await batallaRoutes(app, env, supabase, `${PUBLIC_API_PREFIX}/batalla`, fetchImpl);
   await pokemonRoutes(app, env, supabase);
   await entrenadorRoutes(app, env, supabase);
   await batallaRoutes(app, env, supabase);
