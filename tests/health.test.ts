@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildApp } from '../src/app';
 import { mockEnv } from './helpers';
+import { APP_VERSION } from '../src/config/version';
 
 describe('GET /', () => {
   it('returns API index', async () => {
@@ -23,5 +24,13 @@ describe('GET /health', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: 'ok', environment: 'test', version: '2.0.0' });
+  });
+
+  it('reports the build version and the track', async () => {
+    const app = await buildApp({ ...mockEnv, APP_TRACK: 'canary' });
+    const body = (await app.inject({ method: 'GET', url: '/health' })).json();
+
+    expect(body.app_version).toBe(APP_VERSION);
+    expect(body.track).toBe('canary');
   });
 });
