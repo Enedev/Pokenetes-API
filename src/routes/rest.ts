@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AppEnv } from '../config/env';
-import { API_VERSION } from '../config/version';
+import { contractVersionOf } from '../config/version';
 import { getSupabaseClient } from '../db/client';
+import { apiVersionOf } from '../http/release';
 import { v2TraceFields } from '../http/trace';
 import { FetchLike, fetchConfiguredPeers } from '../integrations/peer-client';
 import { applyShape, Shape } from './shape';
@@ -32,6 +33,7 @@ export async function registerRestResource(
   const db = () => supabaseClient ?? getSupabaseClient(env);
   const notFound = { error: `${config.table} not found` };
   const shaped = (data: unknown) => applyShape(data, config.shape);
+  const version = contractVersionOf(apiVersionOf(config.path));
 
   app.get(config.path, async (_request, reply) => {
     const { data, error } = await db().from(config.table).select('*');
@@ -63,7 +65,7 @@ export async function registerRestResource(
 
     return reply.status(200).send({
       api: 'pokenetes',
-      version: API_VERSION,
+      version,
       ...trace,
       entity: config.table,
       local: shaped(data),
