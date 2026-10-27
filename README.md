@@ -90,6 +90,7 @@ Los umbrales están en [`canary/slo.json`](canary/slo.json). Las alarmas de Terr
 | Latencia p99 | 1000 ms | 1500 ms | 2000 ms |
 | p95 canary / p95 baseline | 1.25 | 1.5 | 2 |
 
+- **De dónde salen los datos**: al terminar cada bake el script espera 75 s a que el ALB publique sus métricas y evalúa `TargetResponseTime` y `HTTPCode_Target_5XX_Count` de cada target group, solo en los minutos completos del bake. La latencia que mide el cliente incluye la red de quien corre la carga (en la primera prueba, picos de 2 s contra 25 ms en el servidor), así que se guarda en el reporte pero no decide, salvo que CloudWatch no tenga datos. Para la razón contra el baseline, un p95 por debajo de 100 ms cuenta como 100 ms.
 - **Pausar** repite el bake time a la mitad. Si sigue en pausa, el canary se queda en el peso actual y el job termina con código 2 para que alguien decida.
 - **Abortar** pone el peso del canary en 0, apaga la falla inyectada y deja el reporte en `canary/reports/` (artefacto del job).
 - **Comparación contra el baseline**: una prueba z de dos proporciones sobre la tasa de 5xx de canary contra stable en la misma ventana. Si la diferencia es significativa (α = 0.05) y el canary pasa el 1%, se aborta aunque no haya llegado al 5%.
