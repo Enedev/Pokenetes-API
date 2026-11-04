@@ -31,29 +31,7 @@ Neithan opera AWS. Phol opera Azure y Dhani opera GCP.
 
 La versión estable **2.2.0** (`api/v2`) y la versión canary **3.0.0** (`api/v3`) corren al mismo tiempo en AWS detrás de un Application Load Balancer. El balanceador manda al canary un porcentaje controlado del tráfico público, y las alarmas sobre los SLO lo regresan a 0% si algo se degrada.
 
-```mermaid
-flowchart LR
-    U[Clientes y generador de carga] -->|HTTP :80| ALB[ALB pokenetes-alb]
-    ALB -->|"regla 10: header x-canary = true"| TGC
-    ALB -->|"default: forward ponderado 100-w"| TGS
-    ALB -->|"default: forward ponderado w"| TGC
-    subgraph VPC 10.30.0.0/16
-        TGS[TG pokenetes-stable] --> ES["EC2 stable<br/>imagen 2.2.0 @sha256<br/>APP_TRACK=stable"]
-        TGC[TG pokenetes-canary] --> EC["EC2 canary<br/>imagen 3.0.0 @sha256<br/>APP_TRACK=canary"]
-        ES --> RDS[(RDS Postgres<br/>tabla pokemon + apodo nullable)]
-        EC --> RDS
-    end
-    ES -. "awslogs + EMF" .-> CW[CloudWatch<br/>Pokenetes/Canary por Track<br/>+ AWS/ApplicationELB por TG]
-    EC -. "awslogs + EMF" .-> CW
-    ALB -. métricas por target group .-> CW
-    CW --> D[Dashboard stable vs canary]
-    CW -->|"alarma 5xx / p95 / unhealthy en ALARM"| EB[EventBridge]
-    EB --> L[Lambda pokenetes-canary-rollback]
-    L -->|"ModifyListener 100/0"| ALB
-    GH[GitHub Actions<br/>Canary Release] -->|"stages.json + slo.json"| R[scripts/canary/rollout.mjs]
-    R -->|"modify-listener w = 0, 10, 50, 100"| ALB
-    R -->|"GetMetricData + describe-alarms"| CW
-```
+![Pokenetes. Canary 3.0.0 junto a stable 2.2.0](docs/canary-deployment.png)
 
 | Pieza | Qué hace | Dónde |
 |---|---|---|
