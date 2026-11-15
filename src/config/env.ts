@@ -20,6 +20,7 @@ export interface AppEnv {
   FAULT_ERROR_RATE?: string;
   FAULT_TOKEN?: string;
   PEER_LATENCY_MS?: string;
+  PEER_RESILIENCE?: string;
 }
 
 function resolveEnvFile(): string {
@@ -68,5 +69,6 @@ export function loadEnv(): AppEnv {
     FAULT_ERROR_RATE: process.env.FAULT_ERROR_RATE,
     FAULT_TOKEN: process.env.FAULT_TOKEN,
     PEER_LATENCY_MS: process.env.PEER_LATENCY_MS,
+    PEER_RESILIENCE: process.env.PEER_RESILIENCE,
   };
 }
