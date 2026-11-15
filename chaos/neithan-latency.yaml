@@ -1,0 +1,29 @@
+experiment: neithan-outbound-latency
+owner: Neithan
+service: pokenetes-api
+fault: latency on the outbound call to biblio-express
+target_call: GET ${BIBLIO_API_URL}/api/v2/books/last
+entry: GET /api/v2/flujo
+steady_state:
+  metric: flujo_success_rate
+  instrument: k6 http_req_failed on GET /api/v2/flujo
+  window: the fixed k6 profile in Phol's repository
+  threshold: success rate >= 99%
+hypothesis: >
+  Given the shared k6 profile P, when 2000 ms of latency is injected on the
+  outbound books/last call for 2 minutes, the flujo success rate stays at or
+  above 99%.
+method:
+  switch: header x-peer-latency-ms
+  fallback: env PEER_LATENCY_MS
+  latency_ms: 2000
+  peer: biblio-express
+blast_radius: only the coordinator's outbound call to Phol's API; Hospitaline and the local pokemon read are not delayed
+duration: 2m
+abort:
+  - flujo success rate below 50% for 30 seconds
+  - coordinator /health failing
+rollback:
+  - remove header x-peer-latency-ms
+  - unset PEER_LATENCY_MS
+  - the delay stops on the next request, with no redeploy
