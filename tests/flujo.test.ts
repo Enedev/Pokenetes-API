@@ -52,4 +52,24 @@ describe('GET /api/v2/flujo', () => {
     expect(response.json().latency_target).toBe('biblio-express');
     expect(Date.now() - started).toBeGreaterThanOrEqual(35);
   });
+
+  it('stops waiting for the slow book when resilience is on', async () => {
+    const fetchImpl = vi.fn((url: string) => url.includes('books')
+      ? new Promise(() => undefined)
+      : Promise.resolve({ ok: true, status: 200, json: async () => ({ local: { id: 'h1' } }) }));
+    const app = await buildApp(mockEnv, createCrudClient({ data: [pokemon] }), fetchImpl);
+    const started = Date.now();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/v2/flujo',
+      headers: { 'x-peer-latency-ms': '5000', 'x-peer-resilience': 'true' },
+    });
+    const book = response.json().steps[1];
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().resilience).toBe(true);
+    expect(book.live).toBe(false);
+    expect(book.error).toBe('timeout');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
 });
