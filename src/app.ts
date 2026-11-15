@@ -22,6 +22,7 @@ import { entrenadorRoutes } from './routes/entrenador';
 import { batallaRoutes } from './routes/batalla';
 import { queryRoutes } from './routes/query';
 import { lastRoutes } from './routes/last';
+import { flujoRoutes } from './routes/flujo';
 import { FetchLike } from './integrations/peer-client';
 
 type Db = ReturnType<typeof import('./db/client').getSupabaseClient>;
@@ -37,9 +38,11 @@ async function mountContract(
   if (contract === 'v3') {
     await lastRoutes(app, env, supabase, prefix, { pokemon: toPokemonV3 });
     await pokemonV3Routes(app, env, supabase, `${prefix}/pokemon`, fetchImpl);
+    await flujoRoutes(app, env, supabase, prefix, toPokemonV3, fetchImpl);
   } else {
     await lastRoutes(app, env, supabase, prefix);
     await pokemonRoutes(app, env, supabase, `${prefix}/pokemon`, fetchImpl);
+    await flujoRoutes(app, env, supabase, prefix, undefined, fetchImpl);
   }
 
   await entrenadorRoutes(app, env, supabase, `${prefix}/entrenador`, fetchImpl);
