@@ -1,0 +1,10 @@
+{
+  "name": "pokenetes-flujo",
+  "concurrency": 4,
+  "duration_seconds": 20,
+  "latency_ms": 2000,
+  "metric": "http_req_duration_p95_ms",
+  "threshold_ms": 800,
+  "entry": "/api/v2/flujo",
+  "note": "Same numbers for round 0 and round 1. Phol owns the group k6 file; this profile is the one the chaos gate runs."
+}

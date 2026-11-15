@@ -13,3 +13,4 @@ k8s/secret.yaml
 
 
 canary/reports/
+chaos/reports/

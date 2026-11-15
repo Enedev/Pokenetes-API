@@ -108,6 +108,22 @@ curl $API/api/v2/pokemon/last
 
 Como el esquema solo crece, un rollback a 2.2.0 no necesita migración de vuelta: las filas creadas por 3.0.0 siguen siendo válidas para 2.2.0, y los datos quedan íntegros.
 
+## Ingeniería del caos
+
+Neithan es el coordinador. `GET /api/v2/flujo` lee el último Pokémon y después, en cadena, el último libro de Phol (`/api/v2/books/last`) y el último hospital de Daniela (`/api/v2/hospitals/last`). Los tres pasos salen con el mismo `x-trace-id`.
+
+El fallo de Neithan es latencia de 2000 ms solo en la llamada hacia Phol. Se enciende con `x-peer-latency-ms: 2000` y se apaga quitando esa cabecera. La métrica es el p95 de `GET /api/v2/flujo`, umbral 800 ms, perfil fijo de 4 usuarios durante 20 s (`chaos/profile.json`).
+
+| Integrante | Fallo | Métrica | Patrones |
+|---|---|---|---|
+| Neithan | Latencia de 2000 ms hacia Phol | p95 del flujo < 800 ms | Timeout de 300 ms y circuit breaker a los 3 fallos |
+| Daniela | Indisponibilidad de una dependencia | La define en su repositorio | Los define en su repositorio |
+| Phol | Agotamiento de un recurso | La define en su repositorio | Los define en su repositorio |
+
+Sin las protecciones, el flujo espera el retraso completo y el p95 se sale del umbral. Con `x-peer-resilience: true` el coordinador corta la llamada a los 300 ms, responde igual con el libro marcado como no disponible, y después de tres fallos deja de llamarlo durante 15 s. Los reintentos se descartaron: repetir la misma llamada lenta alargaría la espera.
+
+Se conservan la API, RDS, el balanceador y el trace id. La cola SQS no forma parte de este flujo síncrono. El experimento está en [`chaos/neithan-latency.yaml`](chaos/neithan-latency.yaml). El workflow **Chaos Gate** corre ese perfil: con `resilience=0` se espera que falle el umbral; con `resilience=1` debe pasar.
+
 ### Inyección de fallas (solo canary)
 
 [`src/http/fault.ts`](src/http/fault.ts) se registra únicamente cuando `APP_TRACK=canary`. En stable las cabeceras se ignoran y `/api/v3/fault` responde 404.
@@ -410,6 +426,7 @@ Hay **cuatro pipelines**. No se ejecutan en tu PC: corren en los servidores de G
 | `.github/workflows/test-pipeline.yml` | **Test Environment Pipeline** | Push o PR a `dev`, o corrida manual | ≥ 50% |
 | `.github/workflows/prod-pipeline.yml` | **Production Environment Pipeline** | Push a `main`, o corrida manual | ≥ 50% |
 | `.github/workflows/terraform-pipeline.yml` | **Terraform Infrastructure** | Solo manual. `apply` construye stable y canary desde sus tags, los fija por digest y crea la nube. `destroy` la borra. | no aplica |
+| `.github/workflows/chaos-gate.yml` | **Chaos Gate** | Solo manual. `resilience=0` es la ronda sin protección y debe fallar el p95. `resilience=1` debe pasar. | el p95 del flujo bajo 800 ms |
 | `.github/workflows/canary-pipeline.yml` | **Canary Release** | Solo manual. `rollout`, `stage`, `rollback` o `analyze` sobre el canary desplegado. | no aplica |
 
 Cada corrida hace: instalar → build → tests → coverage.

@@ -1,0 +1,59 @@
+name: Chaos Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      resilience:
+        description: 0 runs round 0 without the new protections. 1 runs round 1 with timeout and circuit breaker.
+        required: true
+        type: choice
+        options:
+          - "0"
+          - "1"
+      api_url:
+        description: URL of the coordinator. Empty uses terraform output api_url.
+        required: false
+        default: ""
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      PEER_RESILIENCE: ${{ inputs.resilience }}
+      PEER_LATENCY_MS: "2000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Resolve the coordinator URL
+        run: |
+          if [ -n "${{ inputs.api_url }}" ]; then
+            echo "API_URL=${{ inputs.api_url }}" >> "$GITHUB_ENV"
+          else
+            terraform -chdir=terraform init -input=false
+            echo "API_URL=$(terraform -chdir=terraform output -raw api_url)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run the fixed load profile
+        run: |
+          mkdir -p chaos/reports
+          k6 run --summary-export chaos/reports/summary.json chaos/flujo.k6.js
+
+      - name: Fail the gate when p95 misses the threshold
+        run: node scripts/chaos/gate.mjs chaos/reports/summary.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chaos-gate-${{ github.run_id }}
+          path: chaos/reports/

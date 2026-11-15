@@ -2,28 +2,41 @@ experiment: neithan-outbound-latency
 owner: Neithan
 service: pokenetes-api
 fault: latency on the outbound call to biblio-express
-target_call: GET ${BIBLIO_API_URL}/api/v2/books/last
+target_call: GET http://48.217.130.84/api/v2/books/last
 entry: GET /api/v2/flujo
+profile: chaos/profile.json
 steady_state:
-  metric: flujo_success_rate
-  instrument: k6 http_req_failed on GET /api/v2/flujo
-  window: the fixed k6 profile in Phol's repository
-  threshold: success rate >= 99%
+  metric: http_req_duration_p95_ms
+  instrument: k6 http_req_duration p(95) on GET /api/v2/flujo
+  window: 4 virtual users for 20 seconds
+  threshold_ms: 800
 hypothesis: >
-  Given the shared k6 profile P, when 2000 ms of latency is injected on the
-  outbound books/last call for 2 minutes, the flujo success rate stays at or
-  above 99%.
+  Given profile P (4 VUs, 20s), when 2000 ms of latency is injected on the
+  outbound books/last call, the flujo p95 stays under 800 ms.
 method:
   switch: header x-peer-latency-ms
-  fallback: env PEER_LATENCY_MS
+  resilience_switch: header x-peer-resilience
+  fallback: env PEER_LATENCY_MS and PEER_RESILIENCE
   latency_ms: 2000
+  timeout_ms: 300
+  breaker_failures: 3
+  breaker_open_ms: 15000
   peer: biblio-express
-blast_radius: only the coordinator's outbound call to Phol's API; Hospitaline and the local pokemon read are not delayed
-duration: 2m
+round_0:
+  resilience: false
+  protections_absent:
+    - per-dependency timeout
+    - circuit breaker
+blast_radius: only the coordinator outbound call to Phol. The pokemon read and the hospital call are not delayed.
+duration: 20s
 abort:
-  - flujo success rate below 50% for 30 seconds
   - coordinator /health failing
+  - p95 above 5000 ms for the whole window
 rollback:
-  - remove header x-peer-latency-ms
-  - unset PEER_LATENCY_MS
-  - the delay stops on the next request, with no redeploy
+  - remove x-peer-latency-ms and x-peer-resilience
+  - the next request no longer delays or degrades the book step
+patterns_after_diagnosis:
+  - timeout of 300 ms around the book call, so the coordinator stops waiting
+  - circuit breaker that opens after 3 failed book calls and skips that dependency for 15 s
+discarded:
+  - retries with backoff, because each retry would wait on the same injected delay and create a retry storm
