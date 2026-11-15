@@ -79,6 +79,8 @@ export async function fetchPeerLast(options: {
   listPath: string;
   traceId: string;
   fetchImpl?: FetchLike;
+  latencyMs?: number;
+  sleep?: (ms: number) => Promise<void>;
 }): Promise<PeerRecord> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl?.trim();
@@ -96,6 +98,12 @@ export async function fetchPeerLast(options: {
 
   const lastUrl = joinUrl(baseUrl, options.lastPath);
   const listUrl = joinUrl(baseUrl, options.listPath);
+  const delay = options.latencyMs ?? 0;
+
+  if (delay > 0) {
+    const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    await sleep(delay);
+  }
 
   try {
     const payload = await fetchJson(lastUrl, options.traceId, fetchImpl);
