@@ -92,6 +92,30 @@ describe('fetchPeerLast', () => {
     });
   });
 
+  it('unwraps a book object and keeps the trace id', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        book: { id: 5, title: 'Libro Sintetico 5' },
+        api: 'biblio-express',
+        'x-trace-id': 'trace-book',
+      }),
+    });
+
+    const result = await fetchPeerLast({
+      api: 'biblio-express',
+      entity: 'books',
+      baseUrl: 'https://biblio.example.test',
+      lastPath: '/api/v5/books/last',
+      listPath: '/api/v5/books',
+      traceId: 'trace-book',
+      fetchImpl,
+    });
+
+    expect(result.data).toMatchObject({ id: 5, title: 'Libro Sintetico 5', 'x-trace-id': 'trace-book' });
+  });
+
   it('does not invent data when the peer URL is missing', async () => {
     const result = await fetchPeerLast({
       api: 'biblio-express',

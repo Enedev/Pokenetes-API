@@ -19,7 +19,7 @@ function joinUrl(base: string, path: string): string {
   return `${base.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-const PEER_TRACE_FIELDS = ['api', 'version', 'x-trace_id', 'trace-id', 'span-id', 'entity'] as const;
+const PEER_TRACE_FIELDS = ['api', 'version', 'x-trace_id', 'x-trace-id', 'trace-id', 'span-id', 'entity'] as const;
 
 function keepPeerTrace(body: Record<string, unknown>, record: unknown): unknown {
   if (!record || typeof record !== 'object' || Array.isArray(record)) {
@@ -47,7 +47,14 @@ function pickLastRecord(payload: unknown): unknown {
       return keepPeerTrace(body, body.local);
     }
 
-    for (const key of ['data', 'book', 'books', 'user', 'users', 'loans', 'hospitals', 'doctors', 'pacientes']) {
+    for (const key of ['book', 'user']) {
+      const value = body[key];
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return keepPeerTrace(body, value);
+      }
+    }
+
+    for (const key of ['data', 'books', 'users', 'loans', 'hospitals', 'doctors', 'pacientes']) {
       const value = body[key];
       if (Array.isArray(value)) {
         return value.at(-1) ?? null;
