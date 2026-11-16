@@ -1,9 +1,10 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const profile = JSON.parse(readFileSync(new URL('../../chaos/profile.json', import.meta.url), 'utf8'));
-const round = process.argv[2] === '1' ? '1' : '0';
+const round = process.argv[2] === '1' ? '1' : process.argv[2] === 'cal' ? 'cal' : '0';
 const apiUrl = (process.env.API_URL ?? 'http://pokenetes-alb-1190353326.us-east-1.elb.amazonaws.com').replace(/\/$/, '');
 const resilience = round === '1';
+const injectFault = round !== 'cal';
 const samples = [];
 const started = Date.now();
 let running = 0;
@@ -40,7 +41,7 @@ async function oneRequest(id) {
   const inFault = elapsed >= profile.faultWindow.startSeconds
     && elapsed < profile.faultWindow.startSeconds + profile.faultWindow.durationSeconds;
   const headers = { 'x-trace-id': `round${round}-${id}-${Date.now()}` };
-  if (inFault) headers['x-peer-latency-ms'] = String(profile.latency_ms);
+  if (inFault && injectFault) headers['x-peer-latency-ms'] = String(profile.latency_ms);
   if (resilience) headers['x-peer-resilience'] = 'true';
   const t0 = Date.now();
   let status = 0;
@@ -98,7 +99,9 @@ const report = {
   success_rate: samples.length === 0 ? 0 : successes / samples.length,
   p95_ms: p95,
   threshold_ms: profile.threshold_ms,
-  hypothesis: p95 !== null && p95 < profile.threshold_ms ? 'cumplida' : 'refutada',
+  hypothesis: round === 'cal'
+    ? (p95 !== null && p95 < profile.threshold_ms ? 'estado_estable' : 'inestable')
+    : (p95 !== null && p95 < profile.threshold_ms ? 'cumplida' : 'refutada'),
 };
 mkdirSync(new URL('../../chaos/reports/', import.meta.url), { recursive: true });
 const file = new URL(`../../chaos/reports/round-${round}.json`, import.meta.url);
