@@ -5,6 +5,7 @@ import {
   API_VERSION,
   API_V2_PREFIX,
   API_V3_PREFIX,
+  API_V5_PREFIX,
   APP_VERSION,
   PUBLIC_API_PREFIX,
   PUBLIC_API_VERSION,
@@ -35,7 +36,7 @@ async function mountContract(
   prefix: string,
   contract: ApiContract,
 ) {
-  if (contract === 'v3') {
+  if (contract === 'v3' || contract === 'v5') {
     await lastRoutes(app, env, supabase, prefix, { pokemon: toPokemonV3 });
     await pokemonV3Routes(app, env, supabase, `${prefix}/pokemon`, fetchImpl);
     await flujoRoutes(app, env, supabase, prefix, toPokemonV3, fetchImpl);
@@ -93,6 +94,13 @@ export async function buildApp(
         batalla: `GET|POST|PUT|PATCH|DELETE ${API_V3_PREFIX}/batalla`,
         last: `GET ${API_V3_PREFIX}/{pokemon|entrenador|batalla}/last`,
       },
+      v5: {
+        pokemon: `GET|POST|PUT|PATCH|DELETE ${API_V5_PREFIX}/pokemon`,
+        entrenador: `GET|POST|PUT|PATCH|DELETE ${API_V5_PREFIX}/entrenador`,
+        batalla: `GET|POST|PUT|PATCH|DELETE ${API_V5_PREFIX}/batalla`,
+        last: `GET ${API_V5_PREFIX}/{pokemon|entrenador|batalla}/last`,
+        flujo: `GET ${API_V5_PREFIX}/flujo`,
+      },
       public: {
         serves: PUBLIC_API_VERSION,
         pokemon: `GET|POST|PUT|PATCH|DELETE ${PUBLIC_API_PREFIX}/pokemon`,
@@ -114,6 +122,7 @@ export async function buildApp(
   await mountContract(app, env, supabase, fetchImpl, API_V2_PREFIX, 'v2');
   await queryRoutes(app, env, supabase, `${API_V2_PREFIX}/query`);
   await mountContract(app, env, supabase, fetchImpl, API_V3_PREFIX, 'v3');
+  await mountContract(app, env, supabase, fetchImpl, API_V5_PREFIX, 'v5');
   await mountContract(app, env, supabase, fetchImpl, PUBLIC_API_PREFIX, PUBLIC_API_VERSION);
   await pokemonRoutes(app, env, supabase);
   await entrenadorRoutes(app, env, supabase);

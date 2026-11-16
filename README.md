@@ -110,9 +110,9 @@ Como el esquema solo crece, un rollback a 2.2.0 no necesita migración de vuelta
 
 ## Ingeniería del caos
 
-Neithan es el coordinador. `GET /api/v2/flujo` lee el último Pokémon y después, en cadena, el último libro de Phol (`/api/v2/books/last`) y el último hospital de Daniela (`/api/v2/hospitals/last`). Los tres pasos salen con el mismo `x-trace-id`.
+Neithan es el coordinador. `GET /api/v5/flujo` lee el último Pokémon y después, en cadena, el último libro de Phol (`/api/v5/books/last`) y el último hospital de Daniela (`/api/v5/hospitals/last`). Los tres pasos salen con el mismo `x-trace-id`. `/api/v2` y `/api/v3` siguen disponibles.
 
-El fallo de Neithan es latencia de 2000 ms solo en la llamada hacia Phol. Se enciende con `x-peer-latency-ms: 2000` y se apaga quitando esa cabecera. La métrica es el p95 de `GET /api/v2/flujo`, umbral 800 ms, perfil fijo de 4 usuarios durante 20 s (`chaos/profile.json`).
+El fallo de Neithan es latencia de 2000 ms solo en la llamada hacia Phol. Se enciende con `x-peer-latency-ms: 2000` y se apaga quitando esa cabecera. La métrica es el p95 de `GET /api/v5/flujo` durante la ventana de fallo, umbral 800 ms. La carga es el perfil común del grupo, `perfil-comun-v1`: sube a 10 usuarios, se queda, sube a 20 durante 3 minutos y baja a 0. La latencia de 2000 ms entra del segundo 150 al 270. Phol llama al último Pokémon en `/api/v5/pokemon/last`. El flujo completo, el que recorre las tres nubes, es `/api/v5/flujo`.
 
 | Integrante | Fallo | Métrica | Patrones |
 |---|---|---|---|

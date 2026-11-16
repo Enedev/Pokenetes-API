@@ -33,8 +33,8 @@ describe('GET /api/v2/flujo', () => {
     expect(body.steps[1].data).toEqual({ id: 10, title: 'It' });
     expect(body.steps[2].data).toEqual({ id: 'h1', name: 'Hospitaline' });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
-    expect(fetchImpl.mock.calls[0][0]).toContain('/api/v2/books/last');
-    expect(fetchImpl.mock.calls[1][0]).toContain('/api/v2/hospitals/last');
+    expect(fetchImpl.mock.calls[0][0]).toContain('/api/v5/books/last');
+    expect(fetchImpl.mock.calls[1][0]).toContain('/api/v5/hospitals/last');
   });
 
   it('delays only the outbound book call when x-peer-latency-ms is set', async () => {
@@ -71,5 +71,21 @@ describe('GET /api/v2/flujo', () => {
     expect(book.live).toBe(false);
     expect(book.error).toBe('timeout');
     expect(Date.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe('GET /api/v5', () => {
+  it('serves the same flujo and the pokemon last on v5', async () => {
+    const fetchImpl = peers();
+    const app = await buildApp(mockEnv, createCrudClient({ data: [pokemon] }), fetchImpl);
+    const last = await app.inject({ method: 'GET', url: '/api/v5/pokemon/last' });
+    const flujo = await app.inject({ method: 'GET', url: '/api/v5/flujo' });
+
+    expect(last.statusCode).toBe(200);
+    expect(last.json().version).toBe('5.0.0');
+    expect(last.headers['x-api-version']).toBe('v5');
+    expect(flujo.statusCode).toBe(200);
+    expect(flujo.json().version).toBe('5.0.0');
+    expect(flujo.json().steps.map((step: { entity: string }) => step.entity)).toEqual(['pokemon', 'books', 'hospitals']);
   });
 });

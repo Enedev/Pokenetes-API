@@ -2,16 +2,16 @@ experiment: neithan-outbound-latency
 owner: Neithan
 service: pokenetes-api
 fault: latency on the outbound call to biblio-express
-target_call: GET http://48.217.130.84/api/v2/books/last
-entry: GET /api/v2/flujo
+target_call: GET https://biblio-express-final-api-cruuw4ggmq-uc.a.run.app/api/v5/books/last
+entry: GET /api/v5/flujo
 profile: chaos/profile.json
 steady_state:
   metric: http_req_duration_p95_ms
   instrument: k6 http_req_duration p(95) on GET /api/v2/flujo
-  window: 4 virtual users for 20 seconds
+  window: perfil-comun-v1, fault window from second 150 for 120 seconds
   threshold_ms: 800
 hypothesis: >
-  Given profile P (4 VUs, 20s), when 2000 ms of latency is injected on the
+  Given profile perfil-comun-v1, when 2000 ms of latency is injected on the
   outbound books/last call, the flujo p95 stays under 800 ms.
 method:
   switch: header x-peer-latency-ms
@@ -28,7 +28,7 @@ round_0:
     - per-dependency timeout
     - circuit breaker
 blast_radius: only the coordinator outbound call to Phol. The pokemon read and the hospital call are not delayed.
-duration: 20s
+duration: 120s inside perfil-comun-v1
 abort:
   - coordinator /health failing
   - p95 above 5000 ms for the whole window

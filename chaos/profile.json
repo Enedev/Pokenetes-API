@@ -1,10 +1,24 @@
 {
-  "name": "pokenetes-flujo",
-  "concurrency": 4,
-  "duration_seconds": 20,
+  "name": "perfil-comun-v1",
+  "description": "Perfil de carga unico para los tres experimentos. Se usa sin cambios en Ronda 0 y Ronda 1.",
+  "executor": "ramping-vus",
+  "startVUs": 0,
+  "stages": [
+    { "duration": "30s", "target": 10 },
+    { "duration": "60s", "target": 10 },
+    { "duration": "30s", "target": 20 },
+    { "duration": "180s", "target": 20 },
+    { "duration": "30s", "target": 0 }
+  ],
+  "gracefulRampDown": "10s",
+  "thinkTimeSeconds": 0.5,
+  "requestTimeout": "10s",
+  "faultWindow": {
+    "startSeconds": 150,
+    "durationSeconds": 120
+  },
   "latency_ms": 2000,
-  "metric": "http_req_duration_p95_ms",
+  "metric": "fault_window_duration_p95_ms",
   "threshold_ms": 800,
-  "entry": "/api/v2/flujo",
-  "note": "Same numbers for round 0 and round 1. Phol owns the group k6 file; this profile is the one the chaos gate runs."
+  "entry": "/api/v5/flujo"
 }
