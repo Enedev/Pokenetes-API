@@ -11,45 +11,56 @@ on:
           - "0"
           - "1"
       api_url:
-        description: URL of the coordinator. Empty uses terraform output api_url.
+        description: URL of the coordinator.
         required: false
-        default: ""
+        default: "http://pokenetes-alb-1190353326.us-east-1.elb.amazonaws.com"
 
 jobs:
   gate:
     runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: us-east-1
-      PEER_RESILIENCE: ${{ inputs.resilience }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install -y k6
+      - name: Descargar el perfil k6 común
+        uses: actions/checkout@v4
+        with:
+          repository: PholCast/biblio-express
+          ref: 7b2aef79f872ff9e715c62aa59e49d085b6cd841
+          path: perfil-k6
+          token: ${{ secrets.PHOL_REPO_TOKEN }}
+          persist-credentials: false
 
-      - name: Resolve the coordinator URL
-        run: |
-          if [ -n "${{ inputs.api_url }}" ]; then
-            echo "API_URL=${{ inputs.api_url }}" >> "$GITHUB_ENV"
-          else
-            terraform -chdir=terraform init -input=false
-            echo "API_URL=$(terraform -chdir=terraform output -raw api_url)" >> "$GITHUB_ENV"
-          fi
+      - name: Instalar k6
+        uses: grafana/setup-k6-action@v1
 
-      - name: Run the fixed load profile
+      - name: Ronda con perfil-comun-v1
+        env:
+          API_URL: ${{ inputs.api_url }}
+          RESILIENCE: ${{ inputs.resilience }}
         run: |
           mkdir -p chaos/reports
-          k6 run --summary-export chaos/reports/summary.json chaos/flujo.k6.js
+          if [ "$RESILIENCE" = "1" ]; then
+            ROUND=ronda-1
+            EXTRA_ARG=(-e EXTRA_HEADERS='{"x-peer-resilience":"true"}')
+          else
+            ROUND=ronda-0
+            EXTRA_ARG=()
+          fi
+          k6 run \
+            -e BASE_URL="$API_URL" \
+            -e FLOW_PATH=/api/v5/flujo \
+            -e EXPERIMENT=latencia-saliente \
+            -e ROUND="$ROUND" \
+            -e FAULT_HEADERS='{"x-peer-latency-ms":"2000"}' \
+            "${EXTRA_ARG[@]}" \
+            -e OBJECTIVE_METRIC='http_req_duration{phase:fault}' \
+            -e OBJECTIVE_EXPR='p(95)<=800' \
+            -e SUMMARY_PATH=chaos/reports/k6-summary.json \
+            perfil-k6/load/k6/flow.js
 
-      - name: Fail the gate when p95 misses the threshold
-        run: node scripts/chaos/gate.mjs chaos/reports/summary.json
+      - name: Explicar el resultado del umbral
+        if: always()
+        run: node scripts/chaos/gate.mjs chaos/reports/k6-summary.json
 
       - uses: actions/upload-artifact@v4
         if: always()

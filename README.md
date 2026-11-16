@@ -146,7 +146,9 @@ La calibración usó `perfil-comun-v1` completo, sin la cabecera de latencia, y 
 
 La variación entre la ronda 0 y la ronda 1 es (445 − 2304) / 2304 = −80.7 %. En la ronda 0 el coordinador se queda bloqueado en la espera de Phol: la petición sigue respondiendo 200 porque el corte viejo de la llamada es de 5 s, mayor que los 2000 ms inyectados, así que el daño es la latencia acoplada y no una lluvia de errores. En la ronda 1 el paso del libro sale con `error: timeout` y, tras tres fallos, con `circuit_open`; el hospital sigue en vivo. Hay más muestras en la ronda 1 porque cada respuesta termina antes y, con los mismos 20 usuarios y la misma pausa de 0.5 s, caben más peticiones en los mismos 120 s. El detalle está en [`chaos/resultados.md`](chaos/resultados.md).
 
-Se conservan la API, RDS, el balanceador y el trace id. La cola SQS no forma parte de este flujo síncrono. El experimento está en [`chaos/neithan-latency.yaml`](chaos/neithan-latency.yaml). El workflow **Chaos Gate** corre ese perfil con k6: con `resilience=0` se espera que falle el umbral; con `resilience=1` debe pasar. Chaos Mesh cubre el clúster de Daniela; esta llamada sale de AWS, así que el mecanismo declarativo de este fallo es el archivo de arriba más el interruptor `x-peer-latency-ms`.
+Se conservan la API, RDS, el balanceador y el trace id. La cola SQS no forma parte de este flujo síncrono. El experimento está en [`chaos/neithan-latency.yaml`](chaos/neithan-latency.yaml).
+
+El perfil común es el de Phol, fijo en el commit `7b2aef79f872ff9e715c62aa59e49d085b6cd841` de [biblio-express `load/profile.json`](https://github.com/PholCast/biblio-express/blob/7b2aef79f872ff9e715c62aa59e49d085b6cd841/load/profile.json): hasta 20 usuarios, 5 min 30 s, escalones 0→10→20→0 y ventana de fallo del segundo 150 al 270. El workflow **Chaos Gate** descarga su `load/k6/flow.js` con el secreto `PHOL_REPO_TOKEN` y lo corre contra este balanceador. `resilience=0` manda solo `x-peer-latency-ms: 2000` y debe fallar el p95 de la fase `fault`. `resilience=1` añade `x-peer-resilience: true` y debe dejar ese p95 en 800 ms o menos. El experimento en Grafana se llama `latencia-saliente`. Chaos Mesh cubre el clúster de Daniela; esta llamada sale de AWS, así que el mecanismo declarativo de este fallo es el archivo de arriba más el interruptor `x-peer-latency-ms`.
 
 ### Inyección de fallas (solo canary)
 
@@ -450,7 +452,7 @@ Hay **cuatro pipelines**. No se ejecutan en tu PC: corren en los servidores de G
 | `.github/workflows/test-pipeline.yml` | **Test Environment Pipeline** | Push o PR a `dev`, o corrida manual | ≥ 50% |
 | `.github/workflows/prod-pipeline.yml` | **Production Environment Pipeline** | Push a `main`, o corrida manual | ≥ 50% |
 | `.github/workflows/terraform-pipeline.yml` | **Terraform Infrastructure** | Solo manual. `apply` construye stable y canary desde sus tags, los fija por digest y crea la nube. `destroy` la borra. | no aplica |
-| `.github/workflows/chaos-gate.yml` | **Chaos Gate** | Solo manual. `resilience=0` es la ronda sin protección y debe fallar el p95. `resilience=1` debe pasar. | el p95 del flujo bajo 800 ms |
+| `.github/workflows/chaos-gate.yml` | **Chaos Gate** | Solo manual. Descarga el k6 de Phol en `7b2aef7`. `resilience=0` debe fallar el p95 de la fase fault. `resilience=1` debe pasarlo. | el p95 de `http_req_duration{phase:fault}` en 800 ms o menos |
 | `.github/workflows/canary-pipeline.yml` | **Canary Release** | Solo manual. `rollout`, `stage`, `rollback` o `analyze` sobre el canary desplegado. | no aplica |
 
 Cada corrida hace: instalar → build → tests → coverage.
