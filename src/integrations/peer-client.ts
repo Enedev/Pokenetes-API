@@ -47,7 +47,7 @@ function pickLastRecord(payload: unknown): unknown {
       return keepPeerTrace(body, body.local);
     }
 
-    for (const key of ['data', 'books', 'users', 'loans', 'hospitals', 'doctors', 'pacientes']) {
+    for (const key of ['data', 'book', 'books', 'user', 'users', 'loans', 'hospitals', 'doctors', 'pacientes']) {
       const value = body[key];
       if (Array.isArray(value)) {
         return value.at(-1) ?? null;

@@ -10,11 +10,11 @@ export const mockEnv: AppEnv = {
   SUPABASE_SECRET_KEY: 'test-secret-key',
   SUPABASE_JWKS_URL: 'https://test.supabase.co/auth/v1/.well-known/jwks.json',
   BIBLIO_API_URL: 'https://biblio.example.test',
-  BIBLIO_LAST_PATH: '/api/v2/books/last',
-  BIBLIO_LIST_PATH: '/api/books',
+  BIBLIO_LAST_PATH: '/api/v5/books/last',
+  BIBLIO_LIST_PATH: '/api/v5/books',
   HOSPITALINE_API_URL: 'https://hospitaline.example.test',
-  HOSPITALINE_LAST_PATH: '/api/v2/hospitals/last',
-  HOSPITALINE_LIST_PATH: '/api/v1/hospitals',
+  HOSPITALINE_LAST_PATH: '/api/v5/hospitals/last',
+  HOSPITALINE_LIST_PATH: '/api/v5/hospitals',
 };
 
 export function createInsertClient(result: unknown, error: { message: string } | null = null): SupabaseClient {
