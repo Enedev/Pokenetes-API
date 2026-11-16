@@ -120,9 +120,32 @@ El fallo de Neithan es latencia de 2000 ms solo en la llamada hacia Phol. Se enc
 | Daniela | Indisponibilidad de una dependencia | La define en su repositorio | Los define en su repositorio |
 | Phol | Agotamiento de un recurso | La define en su repositorio | Los define en su repositorio |
 
+```mermaid
+sequenceDiagram
+  participant C as Cliente perfil-comun-v1
+  participant A as Pokenetes en AWS
+  participant B as Biblio Express de Phol
+  participant H as Hospitaline de Daniela
+  C->>A: GET /api/v5/flujo con el mismo x-trace-id
+  A->>A: ultimo pokemon
+  Note over A,B: Inyeccion solo aqui. x-peer-latency-ms 2000. Radio de impacto: esa llamada.
+  A->>B: GET /api/v5/books/last
+  A->>H: GET /api/v5/hospitals/last
+  Note over C: La metrica es el p95 de esta respuesta, segundos 150 a 270, umbral 800 ms.
+```
+
 Sin las protecciones, el flujo espera el retraso completo y el p95 se sale del umbral. Con `x-peer-resilience: true` el coordinador corta la llamada a los 300 ms, responde igual con el libro marcado como no disponible, y después de tres fallos deja de llamarlo durante 15 s. Los reintentos se descartaron: repetir la misma llamada lenta alargaría la espera.
 
-Se conservan la API, RDS, el balanceador y el trace id. La cola SQS no forma parte de este flujo síncrono. El experimento está en [`chaos/neithan-latency.yaml`](chaos/neithan-latency.yaml). El workflow **Chaos Gate** corre ese perfil: con `resilience=0` se espera que falle el umbral; con `resilience=1` debe pasar.
+El estado estable, medido con 20 peticiones al mismo flujo y sin la cabecera de latencia, dio 20 respuestas 200, libros y hospitales en vivo, y p95 de 273 ms. La comparación usa el mismo perfil, el mismo retraso de 2000 ms, la misma ventana de 120 s y el mismo instrumento (p95 de la duración vista por el cliente):
+
+| Ronda | Protecciones nuevas | Muestras en la ventana | p95 | Umbral | Hipótesis |
+|---|---|---|---|---|---|
+| 0 | ninguna | 900 | 2268 ms | 800 ms | refutada |
+| 1 | timeout 300 ms y circuit breaker | 3599 | 232 ms | 800 ms | cumplida |
+
+La variación es (232 − 2268) / 2268 = −89.8 %. En la ronda 0 el coordinador se queda bloqueado en la espera de Phol: la petición sigue respondiendo 200 porque el corte viejo de la llamada es de 5 s, mayor que los 2000 ms inyectados, así que el daño es la latencia acoplada y no una lluvia de errores. En la ronda 1 el paso del libro sale con `error: timeout` y, tras tres fallos, con `circuit_open`; el hospital sigue en vivo. Hay más muestras en la ronda 1 porque cada respuesta termina antes y, con los mismos 20 usuarios y la misma pausa de 0.5 s, caben más peticiones en los mismos 120 s. El detalle está en [`chaos/resultados.md`](chaos/resultados.md).
+
+Se conservan la API, RDS, el balanceador y el trace id. La cola SQS no forma parte de este flujo síncrono. El experimento está en [`chaos/neithan-latency.yaml`](chaos/neithan-latency.yaml). El workflow **Chaos Gate** corre ese perfil con k6: con `resilience=0` se espera que falle el umbral; con `resilience=1` debe pasar. Chaos Mesh cubre el clúster de Daniela; esta llamada sale de AWS, así que el mecanismo declarativo de este fallo es el archivo de arriba más el interruptor `x-peer-latency-ms`.
 
 ### Inyección de fallas (solo canary)
 

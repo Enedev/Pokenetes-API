@@ -6,8 +6,8 @@ target_call: GET https://biblio-express-final-api-cruuw4ggmq-uc.a.run.app/api/v5
 entry: GET /api/v5/flujo
 profile: chaos/profile.json
 steady_state:
-  metric: http_req_duration_p95_ms
-  instrument: k6 http_req_duration p(95) on GET /api/v2/flujo
+  metric: fault_window_duration_p95_ms
+  instrument: p95 of the client duration of GET /api/v5/flujo, only inside the fault window
   window: perfil-comun-v1, fault window from second 150 for 120 seconds
   threshold_ms: 800
 hypothesis: >
@@ -40,3 +40,4 @@ patterns_after_diagnosis:
   - circuit breaker that opens after 3 failed book calls and skips that dependency for 15 s
 discarded:
   - retries with backoff, because each retry would wait on the same injected delay and create a retry storm
+results: chaos/resultados.md
