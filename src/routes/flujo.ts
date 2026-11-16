@@ -57,7 +57,6 @@ async function loadBook(
 }
 
 function logPeer(traceId: string, book: PeerRecord, durationMs: number, resilience: boolean): void {
-  if (process.env.NODE_ENV === 'test') return;
   console.log(JSON.stringify({
     msg: 'peer_call',
     trace_id: traceId,
