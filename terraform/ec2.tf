@@ -51,7 +51,29 @@ resource "aws_iam_role_policy" "secrets" {
   name = "${var.project}-read-secret"
   role = aws_iam_role.api.id
 
-  policy = jsonencode({
+  policy = var.enable_origin_guard ? jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Action    = ["secretsmanager:GetSecretValue"]
+        Resource  = aws_secretsmanager_secret.app.arn
+        Condition = { StringEquals = { "aws:SourceVpce" = aws_vpc_endpoint.secretsmanager.id } }
+      },
+      {
+        Effect    = "Deny"
+        Action    = ["secretsmanager:GetSecretValue"]
+        Resource  = "*"
+        Condition = { StringNotEquals = { "aws:SourceVpce" = aws_vpc_endpoint.secretsmanager.id } }
+      },
+      {
+        Effect    = "Deny"
+        Action    = ["secretsmanager:GetSecretValue"]
+        Resource  = "*"
+        Condition = { Null = { "aws:SourceVpce" = "true" } }
+      }
+    ]
+  }) : jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
