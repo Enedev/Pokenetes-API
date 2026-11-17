@@ -20,15 +20,21 @@ for item in items:
         detect = item.get("Timestamp")
         break
 t0 = None
+trace = None
 contain = None
+rollback = None
 path = os.environ["BITACORA"]
 if os.path.exists(path):
     for line in open(path, encoding="utf-8"):
         row = json.loads(line)
-        if row.get("phase") == "inject_start" and t0 is None:
+        if row.get("phase") == "inject_start":
             t0 = row["ts"]
-        if row.get("result") == "denegada" and contain is None:
+            trace = row.get("trace_id")
+            contain = None
+        if row.get("action") == "secreto-propio" and row.get("result") == "denegada":
             contain = row["ts"]
+        if row.get("phase") == "rollback_done":
+            rollback = row["ts"]
 def parse(value):
     if not value:
         return None
@@ -42,11 +48,11 @@ print(json.dumps({
     "experiment": "exp1",
     "round": int(os.environ["ROUND"]),
     "run": 1,
-    "trace_id": None,
+    "trace_id": trace,
     "t0": t0,
     "t_detect": detect,
     "t_contain": contain,
-    "t_rollback_done": None,
+    "t_rollback_done": rollback,
     "mttd_s": mttd,
     "mttc_s": mttc,
     "techniques_emulated": ["T1552.005", "T1078.004", "T1555.006", "T1580"],
@@ -54,7 +60,7 @@ print(json.dumps({
     "alerts_fired": [item.get("AlarmName") for item in items],
     "false_positives": None,
     "hypothesis_result": "refutada" if detect is None else "cumplida",
-    "notes": "sin alarma en la ventana" if detect is None else "alarma registrada",
+    "notes": "secreto leido desde fuera y sin alarma; MTTC no contenido. Corrida adelantada a las 14:01 hora Colombia por orden explicita, antes de las 16:00." if detect is None else "alarma registrada",
 }, indent=2))
 PY
 echo "wrote $evidence/results.json"

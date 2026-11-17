@@ -1,0 +1,23 @@
+{
+  "experiment": "exp1",
+  "round": 0,
+  "run": 1,
+  "trace_id": "gd-e1-r0-n1-66ba7024-da90-49a7-a0b9-c25edef3d39d",
+  "t0": "2026-11-17T19:01:39Z",
+  "t_detect": null,
+  "t_contain": null,
+  "t_rollback_done": "2026-11-17T19:03:06Z",
+  "mttd_s": null,
+  "mttc_s": null,
+  "techniques_emulated": [
+    "T1552.005",
+    "T1078.004",
+    "T1555.006",
+    "T1580"
+  ],
+  "techniques_detected": [],
+  "alerts_fired": [],
+  "false_positives": null,
+  "hypothesis_result": "refutada",
+  "notes": "secreto leido desde fuera y sin alarma; MTTC no contenido. Corrida adelantada a las 14:01 hora Colombia por orden explicita, antes de las 16:00."
+}
