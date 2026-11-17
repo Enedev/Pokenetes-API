@@ -12,6 +12,11 @@ resource "aws_cloudwatch_log_group" "canary" {
   retention_in_days = 3
 }
 
+resource "aws_cloudwatch_log_group" "gameday" {
+  name              = "/${var.project}/gameday"
+  retention_in_days = 30
+}
+
 resource "aws_cloudwatch_metric_alarm" "canary_5xx_rate" {
   alarm_name          = "${var.project}-canary-5xx-rate"
   alarm_description   = "Abortar: 5xx del canary por encima de ${local.slo.thresholds.error_rate_pct.abort_above}% (canary/slo.json)."
