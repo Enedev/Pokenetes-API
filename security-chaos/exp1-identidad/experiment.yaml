@@ -9,6 +9,8 @@ expected_signal: alarma de uso anomalo de la identidad en CloudWatch
 t1_minutes: 15
 t2_minutes: 20
 target_metric: MTTC
+attack_catalog: MITRE ATT&CK Enterprise v20.1
+attack_catalog_consulted: 2026-11-17
 attack_techniques:
   - id: T1552.005
     name: "Unsecured Credentials: Cloud Instance Metadata API"
