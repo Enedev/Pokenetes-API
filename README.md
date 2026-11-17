@@ -116,9 +116,11 @@ El fallo de Neithan es latencia de 2000 ms solo en la llamada hacia Phol. Se enc
 
 | Integrante | Fallo | Métrica | Patrones |
 |---|---|---|---|
-| Neithan | Latencia de 2000 ms hacia Phol | p95 del flujo < 800 ms | Timeout de 300 ms y circuit breaker a los 3 fallos |
-| Daniela | Indisponibilidad de una dependencia | La define en su repositorio | Los define en su repositorio |
-| Phol | Agotamiento de un recurso | La define en su repositorio | Los define en su repositorio |
+| Neithan | Latencia de 2000 ms hacia Phol, 120 s | p95 del flujo < 800 ms | Timeout de 300 ms y circuit breaker a los 3 fallos, abierto 15 s |
+| Daniela | 503 en toda llamada a biblio-express, 120 s | tasa de error del flujo <= 1 % | Degradación de la respuesta y circuit breaker |
+| Phol | 10 de 10 conexiones del pool retenidas, 120 s | presupuesto de error <= 100 % | Timeout de adquisición del pool y respuesta guardada si la base no responde |
+
+El diagrama de las tres piezas que Phol mantiene en su despliegue está en [su README](https://github.com/PholCast/biblio-express#diagrama-de-arquitectura-del-despliegue-canary). El de este flujo está debajo.
 
 ```mermaid
 sequenceDiagram
@@ -136,19 +138,22 @@ sequenceDiagram
 
 Sin las protecciones, el flujo espera el retraso completo y el p95 se sale del umbral. Con `x-peer-resilience: true` el coordinador corta la llamada a los 300 ms, responde igual con el libro marcado como no disponible, y después de tres fallos deja de llamarlo durante 15 s. Los reintentos se descartaron: repetir la misma llamada lenta alargaría la espera.
 
-La calibración usó `perfil-comun-v1` completo, sin la cabecera de latencia, y midió la misma ventana de 120 s: 3394 muestras, todas en 200, p95 de 287 ms. La comparación usa el mismo perfil, el mismo retraso de 2000 ms, la misma ventana y el mismo instrumento (p95 de la duración vista por el cliente):
+La línea base es la fase anterior al fallo dentro de las mismas corridas del Chaos Gate, con el k6 de Phol. En la ronda 0 ese p95 fue 152.1 ms. En la ronda 1 fue 177.0 ms. Las dos fases respondieron sin errores HTTP. La comparación usa el mismo perfil, el mismo retraso de 2000 ms, la misma ventana de 120 s y el mismo instrumento, el p95 de `http_req_duration{phase:fault}`:
 
-| Ronda | Protecciones nuevas | Muestras en la ventana | p95 | Umbral | Hipótesis |
-|---|---|---|---|---|---|
-| Calibración | ninguna, y sin el retraso | 3394 | 287 ms | 800 ms | estado estable |
-| 0 | ninguna | 880 | 2304 ms | 800 ms | refutada |
-| 1 | timeout 300 ms y circuit breaker | 3513 | 445 ms | 800 ms | cumplida |
+| Ronda | Protecciones nuevas | Peticiones en la fase fault | p95 | Umbral | Hipótesis | Corrida |
+|---|---|---|---|---|---|---|
+| 0 | ninguna | 920 | 2147.15 ms | 800 ms | refutada | [43914350422](https://github.com/Enedev/Pokenetes-API/actions/runs/43914350422) |
+| 1 | timeout 300 ms y circuit breaker | 3898 | 145.64 ms | 800 ms | cumplida | [43917687975](https://github.com/Enedev/Pokenetes-API/actions/runs/43917687975) |
 
-La variación entre la ronda 0 y la ronda 1 es (445 − 2304) / 2304 = −80.7 %. En la ronda 0 el coordinador se queda bloqueado en la espera de Phol: la petición sigue respondiendo 200 porque el corte viejo de la llamada es de 5 s, mayor que los 2000 ms inyectados, así que el daño es la latencia acoplada y no una lluvia de errores. En la ronda 1 el paso del libro sale con `error: timeout` y, tras tres fallos, con `circuit_open`; el hospital sigue en vivo. Hay más muestras en la ronda 1 porque cada respuesta termina antes y, con los mismos 20 usuarios y la misma pausa de 0.5 s, caben más peticiones en los mismos 120 s. El detalle está en [`chaos/resultados.md`](chaos/resultados.md).
+La variación entre la ronda 0 y la ronda 1 es (145.64 − 2147.15) / 2147.15 = −93.2 %. En la ronda 0 el coordinador se queda bloqueado en la espera de Phol: la petición sigue respondiendo 200 porque el corte viejo de la llamada es de 5 s, mayor que los 2000 ms inyectados, así que el daño es la latencia acoplada y no una lluvia de errores. En la ronda 1 el paso del libro sale con `error: timeout` y, tras tres fallos, con `circuit_open`; el hospital sigue en vivo. Hay más peticiones en la ronda 1 porque cada respuesta termina antes y, con los mismos 20 usuarios y la misma pausa de 0.5 s, caben más en los mismos 120 s. El detalle está en [`chaos/resultados.md`](chaos/resultados.md).
+
+La reversión se probó el 17 de noviembre de 2026 a las 03:53 UTC, sobre el mismo flujo. Con `x-peer-latency-ms: 2000` la respuesta fue 200 en 2505 ms, `latency_ms` 2000 y el libro en vivo. La petición siguiente, sin esa cabecera, fue 200 en 263 ms, `latency_ms` 0 y el libro en vivo. Quitar la cabecera alcanza: no queda un interruptor pegado.
+
+La ventana de inyección, en el log group `/pokenetes/canary`, se cuenta con los eventos que esa imagen sí escribió. El campo es `Latency` y la ruta `/api/v5/flujo`. El mensaje `peer_call` está en el código actual y no estaba en la imagen que atendió estas dos corridas, así que un filtro por `peer_call` sale vacío en esas horas.
 
 Se conservan la API, RDS, el balanceador y el trace id. La cola SQS no forma parte de este flujo síncrono. El experimento está en [`chaos/neithan-latency.yaml`](chaos/neithan-latency.yaml).
 
-El perfil común es el de Phol, fijo en el commit `7b2aef79f872ff9e715c62aa59e49d085b6cd841` de [biblio-express `load/profile.json`](https://github.com/PholCast/biblio-express/blob/7b2aef79f872ff9e715c62aa59e49d085b6cd841/load/profile.json): hasta 20 usuarios, 5 min 30 s, escalones 0→10→20→0 y ventana de fallo del segundo 150 al 270. El workflow **Chaos Gate** descarga su `load/k6/flow.js` con el secreto `PHOL_REPO_TOKEN` y lo corre contra este balanceador. `resilience=0` manda solo `x-peer-latency-ms: 2000` y debe fallar el p95 de la fase `fault`. `resilience=1` añade `x-peer-resilience: true` y debe dejar ese p95 en 800 ms o menos. El experimento en Grafana se llama `latencia-saliente`. Chaos Mesh cubre el clúster de Daniela; esta llamada sale de AWS, así que el mecanismo declarativo de este fallo es el archivo de arriba más el interruptor `x-peer-latency-ms`.
+El perfil común es el de Phol, fijo en el commit `7b2aef79f872ff9e715c62aa59e49d085b6cd841` de [biblio-express `load/profile.json`](https://github.com/PholCast/biblio-express/blob/7b2aef79f872ff9e715c62aa59e49d085b6cd841/load/profile.json): hasta 20 usuarios, 5 min 30 s, escalones 0→10→20→0 y ventana de fallo del segundo 150 al 270. El workflow **Chaos Gate** descarga su `load/k6/flow.js` con el secreto `PHOL_REPO_TOKEN` y lo corre contra este balanceador. `resilience=0` manda solo `x-peer-latency-ms: 2000` y debe fallar el p95 de la fase `fault`. `resilience=1` añade `x-peer-resilience: true` y debe dejar ese p95 en 800 ms o menos. El experimento en Grafana se llama `latencia-saliente`. Daniela inyecta su fallo con Chaos Toolkit, porque Chaos Mesh no corre en GKE Autopilot. Esta llamada sale de AWS, así que el mecanismo declarativo de este fallo es el archivo de arriba más el interruptor `x-peer-latency-ms`.
 
 ### Inyección de fallas (solo canary)
 
