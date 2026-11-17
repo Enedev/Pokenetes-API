@@ -148,6 +148,50 @@ locals {
         alarms = [for alarm in local.abort_alarms : alarm.arn]
       }
     },
+    {
+      type   = "metric"
+      x      = 0
+      y      = 29
+      width  = 12
+      height = 6
+      properties = {
+        title   = "Lectura del secreto fuera del VPC endpoint"
+        view    = "timeSeries"
+        region  = var.aws_region
+        stat    = "Sum"
+        period  = 60
+        metrics = [["Pokenetes/Security", "Gd1SecretOutsideVpce"]]
+      }
+    },
+    {
+      type   = "metric"
+      x      = 12
+      y      = 29
+      width  = 12
+      height = 6
+      properties = {
+        title   = "Señuelo backup-admin tocado"
+        view    = "timeSeries"
+        region  = var.aws_region
+        stat    = "Sum"
+        period  = 60
+        metrics = [["Pokenetes/Security", "Gd1HoneytokenTouched"]]
+      }
+    },
+    {
+      type   = "alarm"
+      x      = 0
+      y      = 35
+      width  = 24
+      height = 3
+      properties = {
+        title = "Alarmas del experimento de identidad"
+        alarms = [
+          aws_cloudwatch_metric_alarm.secret_outside.arn,
+          aws_cloudwatch_metric_alarm.honeytoken.arn,
+        ]
+      }
+    },
   ]
 }
 

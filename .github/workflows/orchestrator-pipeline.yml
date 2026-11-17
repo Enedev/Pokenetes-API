@@ -1,19 +1,6 @@
 name: Orchestrator Pipeline
 
 on:
-  push:
-    branches:
-      - dev
-      - main
-    paths:
-      - 'orchestrator/**'
-      - '.github/workflows/orchestrator-pipeline.yml'
-  pull_request:
-    branches:
-      - dev
-    paths:
-      - 'orchestrator/**'
-      - '.github/workflows/orchestrator-pipeline.yml'
   workflow_dispatch:
 
 jobs:

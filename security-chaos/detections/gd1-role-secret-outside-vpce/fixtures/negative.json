@@ -1,0 +1,1 @@
+{"eventSource":"secretsmanager.amazonaws.com","eventName":"GetSecretValue","userIdentity":{"sessionContext":{"sessionIssuer":{"userName":"pokenetes-api-instance"}}},"vpcEndpointId":"vpce-allowed","requestParameters":{"secretId":"pokenetes/terraform"}}

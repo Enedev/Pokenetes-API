@@ -10,6 +10,18 @@ variable "project" {
   default     = "pokenetes"
 }
 
+variable "security_notification_email" {
+  description = "Correo que confirma la suscripcion de pokenetes-security."
+  type        = string
+  default     = "neithanochaco@gmail.com"
+}
+
+variable "enable_origin_guard" {
+  description = "Si es true, el rol de la API solo puede leer secretos por el VPC endpoint. La reversion es volverlo a false."
+  type        = bool
+  default     = false
+}
+
 variable "stable_image" {
   description = "Imagen del track stable fijada por digest: <repo>@sha256:<digest>. Vacia solo para crear el ECR."
   type        = string

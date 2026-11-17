@@ -55,3 +55,11 @@ output "queue_url" {
 output "secret_name" {
   value = aws_secretsmanager_secret.app.name
 }
+
+output "github_deployer_role_arn" {
+  value = aws_iam_role.github_deployer.arn
+}
+
+output "secrets_vpc_endpoint_id" {
+  value = aws_vpc_endpoint.secretsmanager.id
+}

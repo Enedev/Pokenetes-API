@@ -26,9 +26,10 @@ concurrency:
 jobs:
   infrastructure:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1
       TF_IN_AUTOMATION: "true"
       TF_VAR_fault_token: ${{ secrets.CANARY_FAULT_TOKEN }}
@@ -46,12 +47,11 @@ jobs:
         with:
           terraform_wrapper: false
 
-      - name: Require AWS credentials
-        run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY is missing."
-            exit 1
-          fi
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::722500516562:role/pokenetes-github-deployer
+          aws-region: us-east-1
 
       - name: Create the state bucket when it does not exist
         working-directory: .
