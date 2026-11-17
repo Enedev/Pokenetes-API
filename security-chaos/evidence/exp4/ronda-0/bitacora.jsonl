@@ -1,0 +1,3 @@
+{"ts":"2026-11-17T20:08:25Z","gameday_id":"gd-2026-11-17","experiment":"exp4","round":0,"run":1,"phase":"inject_start","trace_id":"gd4-r0-seed-40","actor":"neithan","action":"siembra-40","result":"200 x40"}
+{"ts":"2026-11-17T20:53:00Z","gameday_id":"gd-2026-11-17","experiment":"exp4","round":0,"run":1,"phase":"inject_end","trace_id":"gd4-r0-sin-copia","actor":"phol","action":"aviso-sin-copia","result":"sin copia"}
+{"ts":"2026-11-17T20:54:00Z","gameday_id":"gd-2026-11-17","experiment":"exp4","round":0,"run":1,"phase":"inject_start","trace_id":"gd4-r0-seed-10","actor":"neithan","action":"siembra-10","result":"200 x10"}
