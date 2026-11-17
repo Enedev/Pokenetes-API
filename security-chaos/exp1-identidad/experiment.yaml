@@ -1,0 +1,61 @@
+id: exp1-identidad
+title: Credencial del rol pokenetes-api-instance usada desde fuera de AWS
+owner: Neithan
+layer: identidad
+control_under_test: rol IAM pokenetes-api-instance con sus politicas tal como estan hoy
+adverse_condition: credenciales temporales usadas desde un origen fuera de AWS y con un alcance no previsto (lectura del secreto y enumeracion)
+hypothesis: "Dado el control rol IAM pokenetes-api-instance con sus políticas tal como están hoy, cuando sus credenciales temporales se usen desde un origen fuera de AWS y con un alcance no previsto (lectura del secreto y enumeración), esperamos la señal alarma de uso anómalo de la identidad en CloudWatch en ≤ 15 min, y la contención (la credencial deja de servir desde ese origen) en ≤ 20 min."
+expected_signal: alarma de uso anomalo de la identidad en CloudWatch
+t1_minutes: 15
+t2_minutes: 20
+target_metric: MTTC
+attack_techniques:
+  - id: T1552.005
+    name: "Unsecured Credentials: Cloud Instance Metadata API"
+    catalog: MITRE ATT&CK Enterprise
+    version: "1.4"
+    consulted: 2026-11-17
+  - id: T1078.004
+    name: "Valid Accounts: Cloud Accounts"
+    catalog: MITRE ATT&CK Enterprise
+    version: "2.0"
+    consulted: 2026-11-17
+  - id: T1555.006
+    name: "Credentials from Password Stores: Cloud Secrets Management Stores"
+    catalog: MITRE ATT&CK Enterprise
+    version: "1.0"
+    consulted: 2026-11-17
+  - id: T1580
+    name: Cloud Infrastructure Discovery
+    catalog: MITRE ATT&CK Enterprise
+    version: "1.3"
+    consulted: 2026-11-17
+d3fend_countermeasures:
+  - id: D3-DUC
+    name: Decoy User Credential
+    catalog: MITRE D3FEND
+    consulted: 2026-11-17
+  - id: D3-UGLPA
+    name: User Geolocation Logon Pattern Analysis
+    catalog: MITRE D3FEND
+    consulted: 2026-11-17
+  - id: D3-AZET
+    name: Authorization Event Thresholding
+    catalog: MITRE D3FEND
+    consulted: 2026-11-17
+  - id: D3-CRO
+    name: Credential Rotation
+    catalog: MITRE D3FEND
+    consulted: 2026-11-17
+blast_radius: lecturas con la credencial temporal del rol pokenetes-api-instance. No se crean recursos. El flujo sigue respondiendo.
+authorized_resources:
+  - arn:aws:iam::722500516562:role/pokenetes-api-instance
+  - arn:aws:secretsmanager:us-east-1:722500516562:secret:pokenetes/terraform
+  - log-group:/pokenetes/gameday
+synthetic_data: true
+stop_switch: security-chaos/STOP o GAMEDAY_STOP=1
+rollback: descartar las credenciales del subshell. Expiran solas en 6 horas o menos.
+observation_window_minutes: 25
+repetitions:
+  ronda_0: 1
+  ronda_1: 1

@@ -1,0 +1,189 @@
+{
+  "captured_at": "2026-11-17T17:52:42Z",
+  "trace_id": "gd-e1-r0-n0-f2ee1499-f411-404a-b3a9-5c6460f2bbde",
+  "flow_http": "200",
+  "clock_skew": "Seguimiento time.google.com [216.239.35.8:123]. Recopilando 1 muestras. La hora actual es 11/17/2026 12:52:31 PM. 12:52:31, +00.6249301s ",
+  "trails": {
+    "trailList": []
+  },
+  "alarms": {
+    "MetricAlarms": [
+      {
+        "AlarmName": "pokenetes-canary-5xx-rate",
+        "AlarmArn": "arn:aws:cloudwatch:us-east-1:722500516562:alarm:pokenetes-canary-5xx-rate",
+        "AlarmDescription": "Abortar: 5xx del canary por encima de 5% (canary/slo.json).",
+        "AlarmConfigurationUpdatedTimestamp": "2026-11-15T09:23:16.340000-05:00",
+        "ActionsEnabled": true,
+        "OKActions": [],
+        "AlarmActions": [],
+        "InsufficientDataActions": [],
+        "StateValue": "OK",
+        "StateReason": "Threshold Crossed: no datapoints were received for 1 period and 1 missing datapoint was treated as [NonBreaching].",
+        "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-11-15T14:24:27.071+0000\",\"period\":60,\"recentDatapoints\":[],\"threshold\":5.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-11-15T14:21:00.000+0000\"}]}",
+        "StateUpdatedTimestamp": "2026-11-15T09:24:27.073000-05:00",
+        "Dimensions": [],
+        "EvaluationPeriods": 1,
+        "DatapointsToAlarm": 1,
+        "Threshold": 5.0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "Metrics": [
+          {
+            "Id": "rate",
+            "Expression": "IF(requests >= 20, 100 * FILL(errors, 0) / requests, 0)",
+            "Label": "canary 5xx %",
+            "ReturnData": true
+          },
+          {
+            "Id": "errors",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/ApplicationELB",
+                "MetricName": "HTTPCode_Target_5XX_Count",
+                "Dimensions": [
+                  {
+                    "Name": "LoadBalancer",
+                    "Value": "app/pokenetes-alb/626df372e7fcdd96"
+                  },
+                  {
+                    "Name": "TargetGroup",
+                    "Value": "targetgroup/pokenetes-canary/679de6eda20f9497"
+                  }
+                ]
+              },
+              "Period": 60,
+              "Stat": "Sum"
+            },
+            "ReturnData": false
+          },
+          {
+            "Id": "requests",
+            "MetricStat": {
+              "Metric": {
+                "Namespace": "AWS/ApplicationELB",
+                "MetricName": "RequestCount",
+                "Dimensions": [
+                  {
+                    "Name": "TargetGroup",
+                    "Value": "targetgroup/pokenetes-canary/679de6eda20f9497"
+                  },
+                  {
+                    "Name": "LoadBalancer",
+                    "Value": "app/pokenetes-alb/626df372e7fcdd96"
+                  }
+                ]
+              },
+              "Period": 60,
+              "Stat": "Sum"
+            },
+            "ReturnData": false
+          }
+        ],
+        "StateTransitionedTimestamp": "2026-11-15T09:24:27.073000-05:00"
+      },
+      {
+        "AlarmName": "pokenetes-canary-p95-latency",
+        "AlarmArn": "arn:aws:cloudwatch:us-east-1:722500516562:alarm:pokenetes-canary-p95-latency",
+        "AlarmDescription": "Abortar: p95 del canary por encima de 1000 ms (canary/slo.json).",
+        "AlarmConfigurationUpdatedTimestamp": "2026-11-15T09:23:16.345000-05:00",
+        "ActionsEnabled": true,
+        "OKActions": [],
+        "AlarmActions": [],
+        "InsufficientDataActions": [],
+        "StateValue": "OK",
+        "StateReason": "Threshold Crossed: no datapoints were received for 2 periods and 2 missing datapoints were treated as [NonBreaching].",
+        "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-11-15T14:24:36.068+0000\",\"statistic\":\"p95\",\"period\":60,\"recentDatapoints\":[],\"threshold\":1.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-11-15T14:21:00.000+0000\"}]}",
+        "StateUpdatedTimestamp": "2026-11-15T09:24:36.069000-05:00",
+        "MetricName": "TargetResponseTime",
+        "Namespace": "AWS/ApplicationELB",
+        "ExtendedStatistic": "p95",
+        "Dimensions": [
+          {
+            "Name": "LoadBalancer",
+            "Value": "app/pokenetes-alb/626df372e7fcdd96"
+          },
+          {
+            "Name": "TargetGroup",
+            "Value": "targetgroup/pokenetes-canary/679de6eda20f9497"
+          }
+        ],
+        "Period": 60,
+        "EvaluationPeriods": 2,
+        "DatapointsToAlarm": 2,
+        "Threshold": 1.0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "StateTransitionedTimestamp": "2026-11-15T09:24:36.069000-05:00"
+      },
+      {
+        "AlarmName": "pokenetes-canary-unhealthy",
+        "AlarmArn": "arn:aws:cloudwatch:us-east-1:722500516562:alarm:pokenetes-canary-unhealthy",
+        "AlarmDescription": "Abortar: el target del canary no pasa /health.",
+        "AlarmConfigurationUpdatedTimestamp": "2026-11-15T09:23:16.351000-05:00",
+        "ActionsEnabled": true,
+        "OKActions": [],
+        "AlarmActions": [],
+        "InsufficientDataActions": [],
+        "StateValue": "OK",
+        "StateReason": "Threshold Crossed: 1 out of the last 2 datapoints [0.0 (16/11/26 01:52:00)] was not greater than the threshold (0.0) (minimum 1 datapoint for ALARM -> OK transition).",
+        "StateReasonData": "{\"version\":\"1.0\",\"queryDate\":\"2026-11-16T01:55:00.701+0000\",\"startDate\":\"2026-11-16T01:51:00.000+0000\",\"statistic\":\"Maximum\",\"period\":60,\"recentDatapoints\":[1.0,0.0],\"threshold\":0.0,\"evaluatedDatapoints\":[{\"timestamp\":\"2026-11-16T01:52:00.000+0000\",\"sampleCount\":2.0,\"value\":0.0}]}",
+        "StateUpdatedTimestamp": "2026-11-15T20:55:00.702000-05:00",
+        "MetricName": "UnHealthyHostCount",
+        "Namespace": "AWS/ApplicationELB",
+        "Statistic": "Maximum",
+        "Dimensions": [
+          {
+            "Name": "LoadBalancer",
+            "Value": "app/pokenetes-alb/626df372e7fcdd96"
+          },
+          {
+            "Name": "TargetGroup",
+            "Value": "targetgroup/pokenetes-canary/679de6eda20f9497"
+          }
+        ],
+        "Period": 60,
+        "EvaluationPeriods": 2,
+        "DatapointsToAlarm": 2,
+        "Threshold": 0.0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching",
+        "StateTransitionedTimestamp": "2026-11-15T20:55:00.702000-05:00"
+      }
+    ],
+    "CompositeAlarms": [],
+    "LogAlarms": []
+  },
+  "role_inline_policies": {
+    "PolicyNames": [
+      "pokenetes-read-secret",
+      "pokenetes-write-logs"
+    ]
+  },
+  "role_attached_policies": {
+    "AttachedPolicies": [
+      {
+        "PolicyName": "AmazonSSMManagedInstanceCore",
+        "PolicyArn": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      },
+      {
+        "PolicyName": "AmazonEC2ContainerRegistryReadOnly",
+        "PolicyArn": "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+      }
+    ]
+  },
+  "stable_metadata": [
+    {
+      "Id": "i-0f44c4fb4e0fcb249",
+      "Metadata": {
+        "State": "applied",
+        "HttpTokens": "required",
+        "HttpPutResponseHopLimit": 2,
+        "HttpEndpoint": "enabled",
+        "HttpProtocolIpv6": "disabled",
+        "InstanceMetadataTags": "disabled"
+      }
+    }
+  ],
+  "account_access_keys_present": 1,
+  "gh_secret_list": "gh no instalado"
+}
