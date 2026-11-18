@@ -1,0 +1,18 @@
+{
+  "experiment": "exp1",
+  "round": 1,
+  "run": 1,
+  "trace_id": "gd-e1-r1-n1-0d2e0082-2c84-44b8-b197-ae80196c8b1c",
+  "t0": "2026-11-18T01:21:54Z",
+  "t_detect": "2026-11-18T01:24:29Z",
+  "t_contain": "2026-11-18T01:22:11Z",
+  "t_rollback_done": "2026-11-18T01:23:13Z",
+  "mttd_s": 155,
+  "mttc_s": 17,
+  "techniques_emulated": ["T1552.005", "T1078.004", "T1555.006", "T1580"],
+  "techniques_detected": ["T1078.004", "T1555.006"],
+  "alerts_fired": ["gd1-role-secret-outside-vpce", "gd1-honeytoken-touched"],
+  "false_positives": null,
+  "hypothesis_result": "cumplida",
+  "notes": "Corrida adelantada a las 20:21 hora Colombia por orden explicita. Una pasada previa a las 01:18:35Z leyo el secreto y el señuelo porque el apply del pipeline habia dejado enable_origin_guard en false; esa pasada disparo gd1-honeytoken-touched a las 01:20:03Z. Se restituyo la guarda y la pasada medida nego GetSecretValue en 17 s. gd1-role-secret-outside-vpce paso a ALARM a las 01:24:29Z (suma 2 en el minuto 01:23) y SNS notifico. El mismo inject.sh no llamo al señuelo en la pasada medida porque solo descubre su id si puede leer el secreto padre. T1552.005 y T1580 no se detectan directamente: cobertura 2/4. Flujo 200 al cerrar."
+}

@@ -33,6 +33,7 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       TF_IN_AUTOMATION: "true"
       TF_VAR_fault_token: ${{ secrets.CANARY_FAULT_TOKEN }}
+      TF_VAR_enable_origin_guard: "true"
     defaults:
       run:
         working-directory: terraform

@@ -17,9 +17,9 @@ variable "security_notification_email" {
 }
 
 variable "enable_origin_guard" {
-  description = "Si es true, el rol de la API solo puede leer secretos por el VPC endpoint. La reversion es volverlo a false."
+  description = "Si es true, el rol de la API solo puede leer secretos por el VPC endpoint. La reversion es TF_VAR_enable_origin_guard=false."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "stable_image" {
