@@ -2,28 +2,39 @@
 
 API REST en **Node.js + Fastify + TypeScript** para gestionar Pokémon, entrenadores y batallas. En AWS los datos viven en **RDS Postgres**. Versión estable: **2.2.0** (`/api/v2`). Versión canary: **3.0.0** (`/api/v3`, con `/api/v2` intacta).
 
-- API: http://a9882c6970a5d426d9e2f19b89c56119-333357364.us-east-1.elb.amazonaws.com
-- Orquestador: https://tdedeofhzd.execute-api.us-east-1.amazonaws.com/test
+- API: http://pokenetes-alb-1190353326.us-east-1.elb.amazonaws.com
 
-El despliegue de la entrega con Terraform está en [`terraform/README.md`](terraform/README.md). La URL pública de esa API sale de `terraform output api_url`.
-
-![Seguimiento 3. Terraform crea la API en AWS](docs/seguimiento3-terraform.jpg)
+El despliegue de la entrega con Terraform está en [`terraform/README.md`](terraform/README.md).
 
 ## Quién opera cada nube
 
 | Integrante | Nube | Qué opera |
 |---|---|---|
-| Neithan (Enedev) | AWS | API Pokenetes en EKS, orquestador, SQS + DLQ, API Gateway, Secrets Manager, RDS Postgres, CloudWatch |
-| Phol (PholCast) | Azure | API biblio-express. Pokenetes consume `books` |
-| Dhani (Dhani-dev) | GCP | API Hospitaline. Pokenetes consume `hospitals` |
+| Neithan (Enedev) | AWS | API Pokenetes en dos EC2 con Docker, detrás de un ALB (stable y canary), RDS Postgres, Secrets Manager y CloudWatch. No hay Kubernetes. |
+| Phol (PholCast) | GCP | API biblio-express en Cloud Run. Pokenetes consume `books`. |
+| Daniela (Dhani-dev) | GCP | API Hospitaline en GKE. Pokenetes consume `hospitals`. |
 
-El tablero compartido es Grafana Cloud.
+## Diagramas del grupo
 
-## Arquitectura
+Los dibujó Phol en [biblio-express](https://github.com/PholCast/biblio-express/blob/main/README.md). Aquí están las mismas imágenes.
 
-Neithan opera AWS. Phol opera Azure y Dhani opera GCP.
+### Diagrama por capas
 
-![Arquitectura multicloud AWS, GCP y Azure](docs/arquitectura-multicloud.jpg)
+Puntos de inyección E1–E4, fronteras de confianza y puntos de telemetría T1–T4.
+
+![Arquitectura de seguridad del game day: tres nubes, cinco capas, puntos de inyección, fronteras de confianza y telemetría](docs/diagramas/arquitectura-seguridad-gameday.png)
+
+### Diagrama del flujo, puntos de inyección y medición
+
+![Arquitectura del flujo de caos con los puntos de inyección, el radio de impacto y los puntos de medición](docs/diagramas/arquitectura-flujo-caos.png)
+
+Fuente editable: [`docs/diagramas/arquitectura-flujo-caos.svg`](docs/diagramas/arquitectura-flujo-caos.svg).
+
+### Secuencia de `GET /api/v5/flujo`
+
+![Secuencia de GET /api/v5/flujo con el trace id en las tres nubes](docs/diagramas/secuencia-flujo.png)
+
+Fuente editable: [`docs/diagramas/secuencia-flujo.svg`](docs/diagramas/secuencia-flujo.svg).
 
 ---
 
