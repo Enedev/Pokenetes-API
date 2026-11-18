@@ -24,6 +24,8 @@ resource "aws_iam_role" "github_deployer" {
           "token.actions.githubusercontent.com:sub" = [
             "repo:Enedev/Pokenetes-API:ref:refs/heads/main",
             "repo:Enedev/Pokenetes-API:ref:refs/heads/dev",
+            "repo:Enedev@83475677/Pokenetes-API@1337775690:ref:refs/heads/main",
+            "repo:Enedev@83475677/Pokenetes-API@1337775690:ref:refs/heads/dev",
           ]
         }
       }
