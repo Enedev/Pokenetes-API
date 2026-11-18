@@ -17,7 +17,7 @@
   ],
   "techniques_detected": [],
   "alerts_fired": [],
-  "false_positives": null,
+  "false_positives": 0,
   "hypothesis_result": "refutada",
-  "notes": "secreto leido desde fuera y sin alarma; MTTC no contenido. Corrida adelantada a las 14:01 hora Colombia por orden explicita, antes de las 16:00."
+  "notes": "secreto leido desde fuera y sin alarma; MTTC no contenido. Corrida adelantada a las 14:01 hora Colombia por orden explicita, antes de las 16:00. Trafico normal 10 min el 2026-11-18T05:15:38Z a 05:25:41Z, 1 peticion cada 2 s: las dos alarmas gd1 siguieron en OK. false_positives 0."
 }

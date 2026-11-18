@@ -4,7 +4,7 @@ Secreto señuelo `pokenetes/backup-admin-credentials`, con usuario y clave sint�
 
 `src/config/env.ts` solo lee las claves que la API usa. `BACKUP_ADMIN_SECRET_ID` puede vivir en el secreto `pokenetes/terraform` sin cambiar el arranque.
 
-Fuente consultada el 17 de noviembre de 2026: issue de Thumper, "Secret-manager honeytokens — plant canary secrets in AWS Secrets Manager", creado el 16 de julio de 2026. https://github.com/jestasecurity/thumper/issues/255
+Fuentes consultadas el 18 de noviembre de 2026: ficha D3-DUC, Decoy User Credential, https://d3fend.mitre.org/technique/d3f:DecoyUserCredential/ y la guía "AWS API Keys Canarytoken", https://docs.canarytokens.org/guide/aws-keys-token.html. El issue de Thumper que se había citado devuelve 404.
 
 Riesgo residual del rol `pokenetes-github-deployer`: tiene `AdministratorAccess` para que los pipelines sigan pudiendo aplicar Terraform. No es una identidad de mínimo privilegio.
 

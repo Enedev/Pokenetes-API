@@ -1,0 +1,9 @@
+{
+    "matches": [
+        {
+            "eventNumber": 1,
+            "eventMessage": "{\"eventSource\":\"secretsmanager.amazonaws.com\",\"eventName\":\"GetSecretValue\",\"userIdentity\":{\"sessionContext\":{\"sessionIssuer\":{\"userName\":\"pokenetes-api-instance\"}}},\"requestParameters\":{\"secretId\":\"pokenetes/terraform\"}}",
+            "extractedValues": {}
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "matches": [
+        {
+            "eventNumber": 1,
+            "eventMessage": "{\"eventSource\":\"secretsmanager.amazonaws.com\",\"eventName\":\"GetSecretValue\",\"requestParameters\":{\"secretId\":\"pokenetes/backup-admin-credentials\"}}",
+            "extractedValues": {}
+        }
+    ]
+}

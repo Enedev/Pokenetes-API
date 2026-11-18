@@ -45,7 +45,7 @@ Los cuatro existen en la v20.1. En la R1 se detectaron T1078.004 y T1555.006. T1
 
 ## Tendencia: honeytoken
 
-Fuente consultada el 17 de noviembre de 2026: issue de Thumper, "Secret-manager honeytokens — plant canary secrets in AWS Secrets Manager", creado el 16 de julio de 2026. https://github.com/jestasecurity/thumper/issues/255
+Fuentes consultadas el 18 de noviembre de 2026: ficha D3-DUC, Decoy User Credential, https://d3fend.mitre.org/technique/d3f:DecoyUserCredential/ y la guía "AWS API Keys Canarytoken", https://docs.canarytokens.org/guide/aws-keys-token.html. El issue de Thumper que se había citado devuelve 404.
 
 Qué se implementó: secreto sintético `pokenetes/backup-admin-credentials`, permiso de lectura en el rol de la API para que parezca real, y alarma `gd1-honeytoken-touched` sobre `GetSecretValue` cuyo identificador contiene `backup-admin`.
 

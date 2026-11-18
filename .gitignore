@@ -7,6 +7,8 @@ node_modules/
 /coverage
 dist/
 *.log
+!security-chaos/detections/*/last-run-positive.log
+!security-chaos/detections/*/last-run-negative.log
 .DS_Store
 RENDER_SETUP.md
 k8s/secret.yaml

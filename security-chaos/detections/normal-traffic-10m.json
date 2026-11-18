@@ -1,0 +1,8 @@
+{
+  "started_at": "2026-11-18T05:15:38Z",
+  "ended_at": "2026-11-18T05:25:41Z",
+  "pattern": "1 request every 2 seconds to /api/v5/flujo",
+  "gd1-honeytoken-touched": "OK, StateUpdatedTimestamp unchanged",
+  "gd1-role-secret-outside-vpce": "OK, StateUpdatedTimestamp unchanged",
+  "false_positives": 0
+}
